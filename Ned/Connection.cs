@@ -11,7 +11,7 @@ namespace Ned
         public string Text { get; set; }
 
         public Node ParentNode { get; set; }
-        public Node ConnectedNode { get; set; }
+        public Connection ConnectedNode { get; set; }
 
         public Connection(Node parentNode, NodeSide side, int connectionIndex, string text)
         {
@@ -21,15 +21,34 @@ namespace Ned
             Text = text;
         }
 
-        public void ConnectTo(Node other)
+        public void ConnectTo(Connection other)
         {
-            ConnectedNode = other;
-        }
-    }
+            if (other.Side == Side || other.ParentNode == ParentNode)
+                return;
 
-    public enum NodeSide
-    {
-        Input,
-        Output
+            if (Side == NodeSide.Output)
+                ConnectedNode = other;
+            else
+                other.ConnectedNode = this;
+        }
+
+        public void ReleaseConnection()
+        {
+            if (Side == NodeSide.Output)
+                ConnectedNode = null;
+        }
+
+        public Circle GetBounds()
+        {
+            switch (Side)
+            {
+                case NodeSide.Input:
+                    return new Circle(ParentNode.X - 6, ParentNode.Y + (ConnectionIndex + 1) * 24 + 18, 6);
+                case NodeSide.Output:
+                    return new Circle(ParentNode.X + ParentNode.Width + 6, ParentNode.Y + (ConnectionIndex + 1) * 24 + 18, 6);
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
     }
 }

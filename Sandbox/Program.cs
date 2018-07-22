@@ -14,7 +14,7 @@ namespace Sandbox
             var n1 = new Node(50, 50, "Node 1");
             var n2 = new Node(350, 80, "Node 2");
 
-            n1.Outputs[0].ConnectTo(n1);
+            //n1.Outputs[0].ConnectTo(n2.Input);
 
             var g = new Graph();
             g.Nodes.Add(n1);

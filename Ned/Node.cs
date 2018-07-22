@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Ned
 {
-    public class Node
+    public class Node : IShape
     {
         public Connection Input { get; set; }
         public List<Connection> Outputs { get; set; }
@@ -28,6 +28,11 @@ namespace Ned
                 new Connection(this, NodeSide.Output, 1, "DebugOutput 2"),
                 new Connection(this, NodeSide.Output, 2, "DebugOutput 3")
             };
+        }
+
+        public bool Pick(float x, float y)
+        {
+            return x >= X && x <= X + Width && y >= Y && y <= Y + Height;
         }
     }
 }

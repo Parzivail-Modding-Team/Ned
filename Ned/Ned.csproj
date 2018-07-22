@@ -40,9 +40,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Circle.cs" />
     <Compile Include="Connection.cs" />
     <Compile Include="Graph.cs" />
+    <Compile Include="IShape.cs" />
     <Compile Include="Node.cs" />
+    <Compile Include="NodeSide.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
