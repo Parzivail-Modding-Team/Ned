@@ -43,9 +43,9 @@ namespace Ned
             switch (Side)
             {
                 case NodeSide.Input:
-                    return new Circle(ParentNode.X - 6, ParentNode.Y + (ConnectionIndex + 1) * 24 + 18, 6);
+                    return new Circle(ParentNode.X, ParentNode.Y + (ConnectionIndex + 1) * 24 + 18, 6);
                 case NodeSide.Output:
-                    return new Circle(ParentNode.X + ParentNode.Width + 6, ParentNode.Y + (ConnectionIndex + 1) * 24 + 18, 6);
+                    return new Circle(ParentNode.X + ParentNode.Width, ParentNode.Y + (ConnectionIndex + 1) * 24 + 18, 6);
                 default:
                     throw new ArgumentOutOfRangeException();
             }

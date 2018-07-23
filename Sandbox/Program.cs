@@ -11,14 +11,10 @@ namespace Sandbox
     {
         static void Main(string[] args)
         {
-            var n1 = new Node(50, 50, "Node 1");
-            var n2 = new Node(350, 80, "Node 2");
-
-            //n1.Outputs[0].ConnectTo(n2.Input);
-
             var g = new Graph();
-            g.Nodes.Add(n1);
-            g.Nodes.Add(n2);
+            g.Nodes.Add(new Node(50, 50, "Node 1"));
+            g.Nodes.Add(new Node(350, 80, "Node 2"));
+            g.Nodes.Add(new Node(200, 310, "Node 3"));
 
             new MainWindow(g).Run(20, 60);
         }

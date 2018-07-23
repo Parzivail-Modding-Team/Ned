@@ -93,15 +93,6 @@ namespace Sandbox
 
         private void OnMouseDown(object sender, MouseButtonEventArgs mouseButtonEventArgs)
         {
-            var clickedNode = PickNode(mouseButtonEventArgs.X, mouseButtonEventArgs.Y);
-
-            if (clickedNode != null)
-            {
-                _draggingNode = clickedNode;
-                _draggingNodeOffset = new Vector2(mouseButtonEventArgs.X - clickedNode.X, mouseButtonEventArgs.Y - clickedNode.Y);
-                return;
-            }
-
             var clickedConnection = PickConnection(mouseButtonEventArgs.X, mouseButtonEventArgs.Y);
 
             if (clickedConnection != null)
@@ -110,6 +101,15 @@ namespace Sandbox
                     _graph.ClearConnectionsFrom(clickedConnection);
                 else
                     _draggingConnection = clickedConnection;
+                return;
+            }
+
+            var clickedNode = PickNode(mouseButtonEventArgs.X, mouseButtonEventArgs.Y);
+
+            if (clickedNode != null)
+            {
+                _draggingNode = clickedNode;
+                _draggingNodeOffset = new Vector2(mouseButtonEventArgs.X - clickedNode.X, mouseButtonEventArgs.Y - clickedNode.Y);
                 return;
             }
         }
@@ -209,7 +209,7 @@ namespace Sandbox
 
             GL.Disable(EnableCap.Texture2D);
             GL.Color3(Color.DarkSlateGray);
-            GL.LineWidth(2);
+            GL.LineWidth(3);
             if (_draggingConnection != null)
             {
                 var end = _mouse;
@@ -330,11 +330,11 @@ namespace Sandbox
             switch (connection.Side)
             {
                 case NodeSide.Input:
-                    GL.Translate(connection.ParentNode.X + 6, connection.ParentNode.Y + (connection.ConnectionIndex + 1) * 24 + 12, 0);
+                    GL.Translate(bound.X + 12, bound.Y - 6, 0);
                     _font.RenderString(connection.Text);
                     break;
                 case NodeSide.Output:
-                    GL.Translate(connection.ParentNode.X + connection.ParentNode.Width - 6 - _font.MeasureString(connection.Text).Width, connection.ParentNode.Y + (connection.ConnectionIndex + 1) * 24 + 12, 0);
+                    GL.Translate(bound.X - 12 - _font.MeasureString(connection.Text).Width, bound.Y - 6, 0);
                     _font.RenderString(connection.Text);
                     break;
                 default:
@@ -352,6 +352,7 @@ namespace Sandbox
 
         private static void DrawConnection(Connection connection, Vector2 end)
         {
+            GL.LineWidth(4);
             var v = new Vector2(200, 0);
             var pos = new Vector2(
                 connection.Side == NodeSide.Input
