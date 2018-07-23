@@ -32,12 +32,16 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="ObjectListView">
+      <HintPath>.\ObjectListView.dll</HintPath>
+    </Reference>
     <Reference Include="PFX">
-      <HintPath>E:\Visual Studio\PFX\bin\Debug\PFX.dll</HintPath>
+      <HintPath>.\PFX.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -46,6 +50,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FormDialogEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDialogEditor.Designer.cs">
+      <DependentUpon>FormDialogEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="MainWindow.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -63,6 +73,11 @@
       <Project>{8FDAC39B-3111-4530-9EC2-4230BB3FA33F}</Project>
       <Name>Ned</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="FormDialogEditor.resx">
+      <DependentUpon>FormDialogEditor.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
