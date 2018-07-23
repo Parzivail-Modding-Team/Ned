@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 using Ned;
 using OpenTK;
@@ -196,6 +197,8 @@ namespace Sandbox
 
             if (_shouldDie)
                 Exit();
+            
+            MarchingAnts.Update();
         }
 
         private void RenderHandler(object sender, FrameEventArgs e)
@@ -287,8 +290,10 @@ namespace Sandbox
 
             if (_selectedNode == node)
             {
-                GL.Color3(Color.Yellow);
-                Fx.D2.DrawSolidRectangle(node.X - 2, node.Y - 2, node.Width + 4, node.Height + 4);
+                GL.Color3(Color.Black);
+                MarchingAnts.Use();
+                Fx.D2.DrawSolidRectangle(node.X - 1, node.Y - 1, node.Width + 2, node.Height + 2);
+                MarchingAnts.Release();
             }
 
             GL.Color3(Color.DarkSlateGray);

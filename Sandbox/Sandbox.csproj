@@ -57,6 +57,7 @@
       <DependentUpon>FormDialogEditor.cs</DependentUpon>
     </Compile>
     <Compile Include="MainWindow.cs" />
+    <Compile Include="MarchingAnts.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
