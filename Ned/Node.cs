@@ -33,9 +33,9 @@ namespace Ned
             Outputs = new List<Connection>();
 
             if (type == NodeType.End)
-                Input = new Connection(this, NodeSide.Input, 0, "[Exit]");
+                Input = new Connection(this, NodeSide.Input, 0, "");
             else if (type == NodeType.Start)
-                AddOutput("[Interact]");
+                AddOutput("");
             else
             {
                 Input = new Connection(this, NodeSide.Input, 0, "");
