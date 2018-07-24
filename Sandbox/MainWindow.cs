@@ -290,6 +290,8 @@ namespace Sandbox
 
             if (_selectedNode == node)
             {
+                GL.Color3(Color.White);
+                Fx.D2.DrawSolidRectangle(node.X - 1, node.Y - 1, node.Width + 2, node.Height + 2);
                 GL.Color3(Color.Black);
                 MarchingAnts.Use();
                 Fx.D2.DrawSolidRectangle(node.X - 1, node.Y - 1, node.Width + 2, node.Height + 2);
