@@ -12,6 +12,7 @@ using OpenTK.Input;
 using PFX;
 using PFX.BmFont;
 using PFX.Util;
+using Rectangle = Ned.Rectangle;
 
 namespace Sandbox
 {
@@ -20,9 +21,23 @@ namespace Sandbox
         private static FormDialogueEditor _dialogEditor;
         private static Graph Graph => _dialogEditor.GetGraph();
 
-        private static Node _selectedNode;
-        private static Node _draggingNode;
-        private static Vector2 _draggingNodeOffset;
+        public static Node SelectedNode
+        {
+            get => SelectedNodes.Count == 1 ? SelectedNodes[0] : null;
+            private set
+            {
+                SelectedNodes.Clear();
+                if (value != null)
+                    SelectedNodes.Add(value);
+            }
+        }
+
+        public static List<Node> SelectedNodes = new List<Node>();
+
+        private static Node _copiedNode;
+        private static bool _draggingNode;
+        private static Dictionary<Node, Vector2> _draggingNodeOffset = new Dictionary<Node, Vector2>();
+        private static Rectangle _selectionRectangle;
 
         private static Connection _draggingConnection;
         private static readonly Func<Connection, bool> DraggingConnectionPredicate = connection => _draggingConnection == null || _draggingConnection.ParentNode != connection.ParentNode && _draggingConnection.Side != connection.Side;
@@ -68,7 +83,7 @@ namespace Sandbox
         private void LoadHandler(object sender, EventArgs e)
         {
             // Set up caps
-            GL.Disable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.RescaleNormal);
 
             // Set up blending
@@ -141,81 +156,122 @@ namespace Sandbox
 
         private void OnMouseDown(object sender, MouseButtonEventArgs mouseButtonEventArgs)
         {
-            if (mouseButtonEventArgs.Button == MouseButton.Right)
+            switch (mouseButtonEventArgs.Button)
             {
-                _draggingBackground = true;
-                return;
-            }
+                case MouseButton.Right:
+                    _draggingBackground = true;
+                    break;
+                case MouseButton.Left:
+                    var x = _mouse.X;
+                    var y = _mouse.Y;
 
-            var x = _mouse.X;
-            var y = _mouse.Y;
+                    var clickedConnection = Graph.PickConnection(x, y, DraggingConnectionPredicate);
 
-            _selectedNode = null;
-            _dialogEditor.ChangeSelectionTo(_selectedNode);
+                    if (clickedConnection != null)
+                    {
+                        SelectedNode = null;
 
-            var clickedConnection = Graph.PickConnection(x, y, DraggingConnectionPredicate);
+                        if (_keyboard[Key.ShiftLeft])
+                            Graph.ClearConnectionsFrom(clickedConnection);
+                        else
+                            _draggingConnection = clickedConnection;
+                        return;
+                    }
 
-            if (clickedConnection != null)
-            {
-                if (_keyboard[Key.ShiftLeft])
-                    Graph.ClearConnectionsFrom(clickedConnection);
-                else
-                    _draggingConnection = clickedConnection;
-                return;
-            }
+                    var clickedNode = Graph.PickNode(x, y);
 
-            var clickedNode = Graph.PickNode(x, y);
+                    if (clickedNode != null)
+                    {
+                        if (SelectedNodes.Count <= 1)
+                        {
+                            SelectedNode = clickedNode;
+                            _dialogEditor.ChangeSelectionTo(SelectedNode);
+                        }
 
-            if (clickedNode != null)
-            {
-                _selectedNode = clickedNode;
-                _dialogEditor.ChangeSelectionTo(_selectedNode);
+                        _draggingNode = true;
 
-                _draggingNode = clickedNode;
-                _draggingNodeOffset = new Vector2(x - clickedNode.X, y - clickedNode.Y);
-                return;
+                        _draggingNodeOffset.Clear();
+                        foreach (var selectedNode in SelectedNodes)
+                            _draggingNodeOffset.Add(selectedNode, new Vector2(x - selectedNode.X, y - selectedNode.Y));
+
+                        return;
+                    }
+
+                    SelectedNode = null;
+
+                    _selectionRectangle = new Rectangle(_mouse.X, _mouse.Y, 1, 1);
+                    break;
             }
         }
 
         private void OnMouseUp(object sender, MouseButtonEventArgs mouseButtonEventArgs)
         {
-            _draggingBackground = false;
-
-            if (_draggingConnection != null)
+            switch (mouseButtonEventArgs.Button)
             {
-                var picked = Graph.PickConnection(_mouse.X, _mouse.Y, DraggingConnectionPredicate);
-                if (picked != null)
-                    _draggingConnection.ConnectTo(picked);
-            }
+                case MouseButton.Right:
+                    _draggingBackground = false;
+                    break;
+                case MouseButton.Left:
+                    if (_draggingConnection != null)
+                    {
+                        var picked = Graph.PickConnection(_mouse.X, _mouse.Y, DraggingConnectionPredicate);
+                        if (picked != null)
+                            _draggingConnection.ConnectTo(picked);
+                    }
 
-            _draggingNode = null;
-            _draggingConnection = null;
+                    _selectionRectangle = null;
+                    _draggingNode = false;
+                    _draggingConnection = null;
+                    break;
+            }
+        }
+
+        public Vector2 ScreenToCanvasSpace(Vector2 input)
+        {
+            var v = input - _grid.Offset * Zoom;
+            var temp = Vector3.TransformVector(new Vector3(v), Matrix4.CreateScale(1f / Zoom));
+            return temp.Xy;
         }
 
         private void OnMouseMove(object sender, MouseMoveEventArgs mouseMoveEventArgs)
         {
+            _mouse = ScreenToCanvasSpace(new Vector2(mouseMoveEventArgs.X, mouseMoveEventArgs.Y));
+
             if (_draggingBackground)
             {
                 _grid.Offset += new Vector2(mouseMoveEventArgs.XDelta, mouseMoveEventArgs.YDelta) / Zoom;
                 return;
             }
 
-            _mouse = new Vector2(mouseMoveEventArgs.X, mouseMoveEventArgs.Y) - _grid.Offset * Zoom;
-
-            var temp = Vector3.TransformVector(new Vector3(_mouse), Matrix4.CreateScale(1f / Zoom));
-
-            _mouse = temp.Xy;
-
-            if (_draggingNode != null)
+            if (_selectionRectangle != null)
             {
-                _draggingNode.X = _mouse.X - _draggingNodeOffset.X;
-                _draggingNode.Y = _mouse.Y - _draggingNodeOffset.Y;
-                if (_keyboard[Key.ShiftLeft])
+                _selectionRectangle.Width = _mouse.X - _selectionRectangle.X;
+                _selectionRectangle.Height = _mouse.Y - _selectionRectangle.Y;
+
+                SelectAllInSelectionRectangle();
+                return;
+            }
+
+            if (_draggingNode && SelectedNodes.Count > 0)
+            {
+                foreach (var node in SelectedNodes)
                 {
-                    _draggingNode.X = (int)((float)Math.Round(_draggingNode.X / _grid.Pitch) * _grid.Pitch);
-                    _draggingNode.Y = (int)((float)Math.Round(_draggingNode.Y / _grid.Pitch) * _grid.Pitch);
+                    node.X = _mouse.X - _draggingNodeOffset[node].X;
+                    node.Y = _mouse.Y - _draggingNodeOffset[node].Y;
+
+                    if (!_keyboard[Key.ShiftLeft])
+                    {
+                        node.X = (int)((float)Math.Round(node.X / _grid.Pitch) * _grid.Pitch);
+                        node.Y = (int)((float)Math.Round(node.Y / _grid.Pitch) * _grid.Pitch);
+                    }
                 }
             }
+        }
+
+        private static void SelectAllInSelectionRectangle()
+        {
+            SelectedNodes.Clear();
+            SelectedNodes.AddRange(Graph.Where(node => _selectionRectangle.Pick(node.X, node.Y)));
         }
 
         private void OnKeyDown(object sender, KeyboardKeyEventArgs e)
@@ -223,22 +279,47 @@ namespace Sandbox
             if (!Focused)
                 return;
 
-            if (e.Key == Key.Delete && _selectedNode != null && _selectedNode.Type == NodeType.Option)
+            if (e.Key == Key.Delete && SelectedNode != null && SelectedNode.Type == NodeType.Option)
             {
-                Graph.ClearConnectionsFrom(_selectedNode.Input);
-                foreach (var connection in _selectedNode.Outputs)
-                    Graph.ClearConnectionsFrom(connection);
-
                 _dialogEditor.ChangeSelectionTo(null);
-                Graph.Remove(_selectedNode);
-                _selectedNode = null;
+                Graph.RemoveAll(node => SelectedNodes.Contains(node));
+                SelectedNode = null;
             }
 
-            if (e.Key == Key.R && e.Control)
+            if (e.Control && e.Key == Key.R)
             {
                 SetZoom(1);
                 if (e.Shift)
                     _grid.Offset = Vector2.Zero;
+            }
+
+            if (e.Control && e.Key == Key.C && SelectedNode != null && SelectedNode.Type == NodeType.Option)
+            {
+                _copiedNode = new Node(SelectedNode)
+                {
+                    X = 0,
+                    Y = 0
+                };
+            }
+
+            if (e.Control && e.Key == Key.X && SelectedNode != null && SelectedNode.Type == NodeType.Option)
+            {
+                _copiedNode = new Node(SelectedNode)
+                {
+                    X = 0,
+                    Y = 0
+                };
+
+                _dialogEditor.ChangeSelectionTo(null);
+                Graph.Remove(SelectedNode);
+            }
+
+            if (e.Control && e.Key == Key.V && _copiedNode != null)
+            {
+                _copiedNode.X = _mouse.X;
+                _copiedNode.Y = _mouse.Y;
+
+                Graph.Add(new Node(_copiedNode));
             }
         }
 
@@ -287,21 +368,29 @@ namespace Sandbox
                      ClearBufferMask.StencilBufferBit);
 
             GL.PushMatrix();
-            GL.Scale(Zoom, Zoom, Zoom);
+            GL.Scale(Zoom, Zoom, 1);
 
             GL.Disable(EnableCap.Texture2D);
-            GL.LineWidth(1);
+
+            GL.PushMatrix();
+            GL.Translate(0, 0, -50);
 
             GL.Color3(Color.Gray);
+            GL.PointSize(1);
+
             _grid.Draw();
+
+            GL.PopMatrix();
 
             GL.Translate(_grid.Offset.X, _grid.Offset.Y, 0);
             GL.LineWidth(2);
-            GL.PointSize(1);
 
             GL.Color3(Color.Black);
             Fx.D2.DrawLine(-10, 0, 10, 0);
             Fx.D2.DrawLine(0, -10, 0, 10);
+
+            if (_selectionRectangle != null)
+                Fx.D2.DrawWireRectangle(_selectionRectangle.X, _selectionRectangle.Y, _selectionRectangle.Width, _selectionRectangle.Height);
 
             GL.LineWidth(3);
             if (_draggingConnection != null)
@@ -311,23 +400,20 @@ namespace Sandbox
                 var picked = Graph.PickConnection(_mouse.X, _mouse.Y, DraggingConnectionPredicate);
                 if (picked != null)
                 {
-                    var bounds = picked.GetBounds();
-                    end = new Vector2(bounds.X, bounds.Y);
-
-                    GL.Color3(Color.DarkSlateGray);
-                    GL.Enable(EnableCap.LineStipple);
-                    GL.LineStipple(3, 0xAAAA);
-                    Fx.D2.DrawWireCircle(end.X, end.Y, 12);
-                    GL.Disable(EnableCap.LineStipple);
+                    var b = picked.GetBounds();
+                    end = new Vector2(b.X, b.Y);
                 }
-
 
                 GL.Color3(Color.Gray);
                 DrawConnection(_draggingConnection, end);
             }
 
+            for (var i = 0; i < Graph.Count; i++)
+                DrawNode(Graph[i], i);
+
             foreach (var graphNode in Graph)
-                DrawNode(graphNode);
+                DrawConnections(graphNode);
+
             GL.PopMatrix();
 
             // Render diagnostic data
@@ -370,23 +456,43 @@ namespace Sandbox
             _profile = _profiler.Reset();
         }
 
-        private void DrawNode(Node node)
+        private void DrawConnections(Node node)
         {
             GL.PushMatrix();
+            GL.Translate(0, 0, -10);
+            GL.Color3(Color.Gray);
+
+            foreach (var connection in node.Outputs)
+            {
+                if (connection.ConnectedNode != null)
+                    DrawConnection(connection, connection.ConnectedNode);
+            }
+            GL.PopMatrix();
+        }
+
+        private void DrawNode(Node node, int zIndex)
+        {
+            const int borderRadius = 6;
+
+            GL.PushMatrix();
+            GL.Translate(0, 0, zIndex);
             GL.Disable(EnableCap.Texture2D);
 
-            if (_selectedNode == node)
+            if (SelectedNodes.Contains(node))
             {
                 GL.Color3(Color.White);
-                Fx.D2.DrawSolidRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom, node.Height + 2 / Zoom);
+                RoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom, node.Height + 2 / Zoom, borderRadius, borderRadius, borderRadius, borderRadius, PrimitiveType.TriangleFan);
+                GL.Translate(0, 0, 0.01);
                 GL.Color3(Color.Black);
                 MarchingAnts.Use();
-                Fx.D2.DrawSolidRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom, node.Height + 2 / Zoom);
+                RoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom, node.Height + 2 / Zoom, borderRadius, borderRadius, borderRadius, borderRadius, PrimitiveType.TriangleFan);
                 MarchingAnts.Release();
             }
 
+            GL.Translate(0, 0, 0.01);
+
             GL.Color3(Color.DarkSlateGray);
-            Fx.D2.DrawSolidRectangle(node.X, node.Y + 20, node.Width, node.Height - 20);
+            RoundRectangle(node.X, node.Y + 20, node.Width, node.Height - 20, 0, 0, borderRadius, borderRadius, PrimitiveType.TriangleFan);
 
             switch (node.Type)
             {
@@ -413,13 +519,13 @@ namespace Sandbox
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            Fx.D2.DrawSolidRectangle(node.X, node.Y, node.Width, 20);
+            RoundRectangle(node.X, node.Y, node.Width, 20, borderRadius, borderRadius, 0, 0, PrimitiveType.TriangleFan);
 
             GL.Enable(EnableCap.Texture2D);
             GL.Color3(Color.White);
 
             GL.PushMatrix();
-            GL.Translate(node.X + 4, node.Y + 4, 0);
+            GL.Translate(node.X + 4, node.Y + 4, 0.01);
             RenderString(node.Name);
             GL.PopMatrix();
 
@@ -459,12 +565,12 @@ namespace Sandbox
             switch (connection.Side)
             {
                 case NodeSide.Input:
-                    GL.Translate(bound.X + 12, bound.Y - 6, 0);
+                    GL.Translate(bound.X + 12, bound.Y - 6, 0.01);
                     RenderString(connection.Text);
                     break;
                 case NodeSide.Output:
                     var s = MakeStringFit(connection.ParentNode.Width - 20, connection.Text);
-                    GL.Translate(bound.X - 12 - _font.MeasureString(s).Width, bound.Y - 6, 0);
+                    GL.Translate(bound.X - 12 - _font.MeasureString(s).Width, bound.Y - 6, 0.01);
                     RenderString(s);
                     break;
                 default:
@@ -473,19 +579,37 @@ namespace Sandbox
             GL.PopMatrix();
 
             GL.Disable(EnableCap.Texture2D);
-            GL.Color3(Color.Gray);
-
-            if (connection.Side == NodeSide.Output && connection.ConnectedNode != null)
-                DrawConnection(connection, connection.ConnectedNode);
 
             GL.Color3(Color.DarkSlateGray);
             Fx.D2.DrawSolidCircle(bound.X, bound.Y, 8);
 
+            GL.Translate(0, 0, 0.01);
+
             GL.Color3(connection.Side == NodeSide.Input ? Color.DeepSkyBlue : Color.LimeGreen);
             Fx.D2.DrawSolidCircle(bound.X, bound.Y, 6);
 
+            var picked = Graph.PickConnection(_mouse.X, _mouse.Y, DraggingConnectionPredicate);
+            if (picked == connection && _draggingConnection != null || _draggingConnection == connection)
+            {
+                GL.PushMatrix();
+                GL.Color3(Color.SlateGray);
+                GL.Translate(0, 0, 0.01);
+                Fx.D2.DrawSolidCircle(bound.X, bound.Y, 3);
+                GL.PopMatrix();
+            }
+            else if (connection.ConnectedNode != null)
+            {
+                GL.PushMatrix();
+                GL.Color3(Color.DarkSlateGray);
+                GL.Translate(0, 0, 0.01);
+                Fx.D2.DrawSolidCircle(bound.X, bound.Y, 3);
+                GL.PopMatrix();
+            }
+
             if (pickedForDeletion)
             {
+                GL.Translate(0, 0, 0.01);
+
                 GL.Color3(Color.Red);
                 GL.Enable(EnableCap.PolygonStipple);
                 GL.PolygonStipple(StippleDiagonalLines);
@@ -514,12 +638,110 @@ namespace Sandbox
 
         private void DrawConnection(Connection connection, Vector2 end)
         {
-            GL.LineWidth(4 * Zoom);
             var v = new Vector2(200, 0);
             var bound = connection.GetBounds();
             var pos = new Vector2(bound.X, bound.Y);
-            Fx.D2.CentripetalCatmullRomTo(connection.Side == NodeSide.Input ? pos + v : pos - v, pos, end,
-                connection.Side == NodeSide.Input ? end - v : end + v, 20);
+            CentripetalCatmullRomTo(connection.Side == NodeSide.Input ? pos + v : pos - v, pos, end,
+                connection.Side == NodeSide.Input ? end - v : end + v);
+        }
+
+        private void CentripetalCatmullRomTo(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
+        {
+            var numSegments = (int)((c - b).Length / 10);
+
+            if (numSegments > 30)
+                numSegments = 30;
+
+            var segments = new Vector2[numSegments + 1];
+
+            for (var i = 0; i <= numSegments; i++)
+                segments[i] = Fx.D2.EvalCentripetalCatmullRom(a, b, c, d, (float)i / numSegments);
+
+            DrawSmoothLine(4, segments, PrimitiveType.TriangleStrip);
+        }
+
+        public static void DrawSmoothLine(float thickness, Vector2[] segments, PrimitiveType mode)
+        {
+            for (var i = 0; i < segments.Length - 1; i++)
+                DrawSmoothLineSegment(thickness, i == 0 ? Vector2.Zero : segments[i - 1], segments[i], segments[i + 1], i == segments.Length - 2 ? Vector2.Zero : segments[i + 2], mode);
+        }
+
+        private static void DrawSmoothLineSegment(float thickness, Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, PrimitiveType mode)
+        {
+            if (p1 == p2)
+                return;
+
+            var line = (p2 - p1).Normalized();
+            var normal = new Vector2(-line.Y, line.X).Normalized();
+
+            var tangent1 = p0 == Vector2.Zero ? line : ((p1 - p0).Normalized() + line).Normalized();
+            var tangent2 = p3 == Vector2.Zero ? line : ((p3 - p2).Normalized() + line).Normalized();
+
+            var miter1 = new Vector2(-tangent1.Y, tangent1.X);
+            var miter2 = new Vector2(-tangent2.Y, tangent2.X);
+
+            var length1 = thickness / Vector2.Dot(normal, miter1);
+            var length2 = thickness / Vector2.Dot(normal, miter2);
+
+            GL.Begin(mode);
+
+            if (p0 == Vector2.Zero)
+            {
+                GL.Vertex2(p1.X - length1 * miter1.X, p1.Y - length1 * miter1.Y);
+                GL.Vertex2(p1.X + length1 * miter1.X, p1.Y + length1 * miter1.Y);
+            }
+
+            if (p3 == Vector2.Zero)
+            {
+                GL.Vertex2(p2.X + length2 * miter2.X, p2.Y + length2 * miter2.Y);
+                GL.Vertex2(p2.X - length2 * miter2.X, p2.Y - length2 * miter2.Y);
+            }
+
+            GL.Vertex2(p2.X - length2 * miter2.X, p2.Y - length2 * miter2.Y);
+            GL.Vertex2(p1.X - length1 * miter1.X, p1.Y - length1 * miter1.Y);
+
+            GL.Vertex2(p2.X + length2 * miter2.X, p2.Y + length2 * miter2.Y);
+            GL.Vertex2(p1.X + length1 * miter1.X, p1.Y + length1 * miter1.Y);
+
+            GL.End();
+        }
+
+        public static void RoundRectangle(float x, float y, float w, float h, float radiusTopLeft, float radiusTopRight, float radiusBottomLeft, float radiusBottomRight, PrimitiveType mode)
+        {
+            float step = 45 / Math.Max(radiusTopLeft, Math.Max(radiusTopRight, Math.Max(radiusBottomLeft, radiusBottomRight)));
+            if (step > 45)
+                step = 45;
+            GL.Begin(mode);
+            BufferRoundRectangle(x, y, w, h, radiusTopLeft, radiusTopRight, radiusBottomLeft, radiusBottomRight, step);
+            GL.End();
+        }
+
+        public static void BufferRoundRectangle(float x, float y, float w, float h, float radiusTopLeft, float radiusTopRight, float radiusBottomLeft, float radiusBottomRight, float step)
+        {
+            for (float i = -90; i <= 0; i += step)
+            {
+                var nx = Math.Sin(i * 3.141526f / 180) * radiusBottomLeft + radiusBottomLeft;
+                var ny = Math.Cos(i * 3.141526f / 180) * radiusBottomLeft + h - radiusBottomLeft;
+                GL.Vertex2(nx + x, ny + y);
+            }
+            for (float i = 0; i <= 90; i += step)
+            {
+                var nx = Math.Sin(i * 3.141526f / 180) * radiusBottomRight + w - radiusBottomRight;
+                var ny = Math.Cos(i * 3.141526f / 180) * radiusBottomRight + h - radiusBottomRight;
+                GL.Vertex2(nx + x, ny + y);
+            }
+            for (float i = 90; i <= 180; i += step)
+            {
+                var nx = Math.Sin(i * 3.141526f / 180) * radiusTopRight + w - radiusTopRight;
+                var ny = Math.Cos(i * 3.141526f / 180) * radiusTopRight + radiusTopRight;
+                GL.Vertex2(nx + x, ny + y);
+            }
+            for (float i = 180; i <= 270; i += step)
+            {
+                var nx = Math.Sin(i * 3.141526f / 180) * radiusTopLeft + radiusTopLeft;
+                var ny = Math.Cos(i * 3.141526f / 180) * radiusTopLeft + radiusTopLeft;
+                GL.Vertex2(nx + x, ny + y);
+            }
         }
     }
 }

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using OpenTK;
 using PFX;
 
 namespace Sandbox
@@ -68,7 +69,8 @@ namespace Sandbox
 
         private void bAddNode_Click(object sender, EventArgs e)
         {
-            _graph.Add(new Node(NodeType.Option, (Actor)cbActor.SelectedValue, 10, 10));
+            var v = _nodeEditor.ScreenToCanvasSpace(new Vector2(10, 10));
+            _graph.Add(new Node(NodeType.Option, (Actor)cbActor.SelectedValue, v.X, v.Y));
         }
 
         public void ChangeSelectionTo(Node node)

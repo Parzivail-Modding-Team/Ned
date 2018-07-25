@@ -8,10 +8,10 @@ namespace Ned
 {
     public class Rectangle : IShape
     {
-        public float X { get; }
-        public float Y { get; }
-        public float Width { get; }
-        public float Height { get; }
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Width { get; set; }
+        public float Height { get; set; }
 
         public Rectangle(float x, float y, float w, float h)
         {
@@ -23,7 +23,7 @@ namespace Ned
 
         public bool Pick(float x, float y)
         {
-            return x >= X && x <= X + Width && y >= Y && y <= Y + Height;
+            return x >= Math.Min(X, X + Width) && x <= Math.Max(X, X + Width) && y >= Math.Min(Y, Y + Height) && y <= Math.Max(Y, Y + Height);
         }
     }
 }

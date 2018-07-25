@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Ned
 {
@@ -33,6 +34,15 @@ namespace Ned
             ParentNode = graph.GetNode(connection.ParentNode);
 
             _cachedLoadingConnection = connection.ConnectedNode;
+        }
+
+        public Connection(Node parent, Connection other)
+        {
+            Side = other.Side;
+            ConnectionIndex = other.ConnectionIndex;
+            Text = other.Text;
+            ParentNode = parent;
+            ConnectedNode = other.ConnectedNode == null ? null : new Connection(parent, other.ConnectedNode);
         }
 
         internal void FinishLoading(Graph graph)
@@ -85,6 +95,17 @@ namespace Ned
                 ParentNode = ParentNode.Id,
                 Text = Text
             };
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Connection connection &&
+                   Id.Equals(connection.Id);
+        }
+
+        public override int GetHashCode()
+        {
+            return 2108858624 + EqualityComparer<Guid>.Default.GetHashCode(Id);
         }
     }
 }

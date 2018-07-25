@@ -80,6 +80,17 @@ namespace Ned
             }
         }
 
+        public Node(Node other)
+        {
+            X = other.X;
+            Y = other.Y;
+            Name = other.Name;
+            Type = other.Type;
+            Actor = other.Actor;
+            Input = other.Input == null ? null : new Connection(this, other.Input);
+            Outputs = other.Outputs.Select(connection => new Connection(this, connection)).ToList();
+        }
+
         internal void FinishLoading(Graph graph)
         {
             if (_cachedLoadingNode.Input != null)
@@ -132,6 +143,17 @@ namespace Ned
                 Y = Y,
                 Name = Name
             };
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Node node &&
+                   Id.Equals(node.Id);
+        }
+
+        public override int GetHashCode()
+        {
+            return 2108858624 + EqualityComparer<Guid>.Default.GetHashCode(Id);
         }
     }
 }

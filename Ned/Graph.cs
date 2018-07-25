@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -93,6 +94,15 @@ namespace Ned
                 node.MakeConnections(graph);
 
             return graph;
+        }
+
+        public new void Remove(Node node)
+        {
+            ClearConnectionsFrom(node.Input);
+            foreach (var connection in node.Outputs)
+                ClearConnectionsFrom(connection);
+
+            base.Remove(node);
         }
     }
 }
