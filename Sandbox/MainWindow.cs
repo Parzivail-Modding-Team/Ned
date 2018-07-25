@@ -17,7 +17,7 @@ namespace Sandbox
 {
     public class MainWindow : GameWindow
     {
-        private static FormDialogEditor _dialogEditor;
+        private static FormDialogueEditor _dialogEditor;
         private static Graph Graph => _dialogEditor.GetGraph();
 
         private static Node _selectedNode;
@@ -97,7 +97,7 @@ namespace Sandbox
             // Init keyboard to ensure first frame won't NPE
             _keyboard = Keyboard.GetState();
 
-            _dialogEditor = new FormDialogEditor(this);
+            _dialogEditor = new FormDialogueEditor(this);
             _dialogEditor.Show();
 
             Lumberjack.Info("Window Loaded.");
@@ -131,6 +131,7 @@ namespace Sandbox
 
             var size = new Vector2(Width, Height);
             _grid.Offset -= (size / zoomBefore - size / Zoom) / 2;
+            _grid.Offset = new Vector2((int)_grid.Offset.X, (int)_grid.Offset.Y);
         }
 
         private void CloseHandler(object sender, CancelEventArgs e)
@@ -211,8 +212,8 @@ namespace Sandbox
                 _draggingNode.Y = _mouse.Y - _draggingNodeOffset.Y;
                 if (_keyboard[Key.ShiftLeft])
                 {
-                    _draggingNode.X = (float)Math.Round(_draggingNode.X / _grid.Pitch) * _grid.Pitch;
-                    _draggingNode.Y = (float)Math.Round(_draggingNode.Y / _grid.Pitch) * _grid.Pitch;
+                    _draggingNode.X = (int)((float)Math.Round(_draggingNode.X / _grid.Pitch) * _grid.Pitch);
+                    _draggingNode.Y = (int)((float)Math.Round(_draggingNode.Y / _grid.Pitch) * _grid.Pitch);
                 }
             }
         }
@@ -222,7 +223,7 @@ namespace Sandbox
             if (!Focused)
                 return;
 
-            if (e.Key == Key.Delete && _selectedNode != null)
+            if (e.Key == Key.Delete && _selectedNode != null && _selectedNode.Type == NodeType.Option)
             {
                 Graph.ClearConnectionsFrom(_selectedNode.Input);
                 foreach (var connection in _selectedNode.Outputs)
@@ -295,6 +296,13 @@ namespace Sandbox
             _grid.Draw();
 
             GL.Translate(_grid.Offset.X, _grid.Offset.Y, 0);
+            GL.LineWidth(2);
+            GL.PointSize(1);
+
+            GL.Color3(Color.Black);
+            Fx.D2.DrawLine(-10, 0, 10, 0);
+            Fx.D2.DrawLine(0, -10, 0, 10);
+
             GL.LineWidth(3);
             if (_draggingConnection != null)
             {
@@ -378,7 +386,7 @@ namespace Sandbox
             }
 
             GL.Color3(Color.DarkSlateGray);
-            Fx.D2.DrawSolidRectangle(node.X, node.Y + 18, node.Width, node.Height - 18);
+            Fx.D2.DrawSolidRectangle(node.X, node.Y + 20, node.Width, node.Height - 20);
 
             switch (node.Type)
             {
@@ -405,7 +413,7 @@ namespace Sandbox
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            Fx.D2.DrawSolidRectangle(node.X, node.Y, node.Width, 18);
+            Fx.D2.DrawSolidRectangle(node.X, node.Y, node.Width, 20);
 
             GL.Enable(EnableCap.Texture2D);
             GL.Color3(Color.White);

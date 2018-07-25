@@ -1,10 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Ned
 {
     public class Node : IShape
     {
+        public readonly Guid Id = Guid.NewGuid();
+
         public Connection Input { get; set; }
         public List<Connection> Outputs { get; set; }
 
@@ -15,11 +20,27 @@ namespace Ned
         public Actor Actor { get; }
 
         public float Width => Type == NodeType.Option ? 240 : 90;
-        public float Height => (Math.Max(Outputs.Count, 1) + 1) * 24 + 18;
+        public float Height => (Math.Max(Outputs.Count, 1) + 1) * 20 + 20;
+
+        private SavedNode _cachedLoadingNode;
 
         public Node(NodeType type, string name, float x, float y) : this(type, Actor.None, x, y)
         {
             Name = name;
+        }
+
+        internal Node(SavedNode node)
+        {
+            Outputs = new List<Connection>();
+
+            Id = node.Id;
+            X = node.X;
+            Y = node.Y;
+            Name = node.Name;
+            Type = node.Type;
+            Actor = node.Actor;
+
+            _cachedLoadingNode = node;
         }
 
         public Node(NodeType type, Actor actor, float x, float y)
@@ -32,23 +53,49 @@ namespace Ned
 
             Outputs = new List<Connection>();
 
-            if (type == NodeType.End)
-                Input = new Connection(this, NodeSide.Input, 0, "");
-            else if (type == NodeType.Start)
-                AddOutput("");
-            else
+            switch (type)
             {
-                Input = new Connection(this, NodeSide.Input, 0, "");
+                case NodeType.End:
+                    Input = new Connection(this, NodeSide.Input, 0, "");
+                    break;
+                case NodeType.Start:
+                    AddOutput("");
+                    break;
+                default:
+                    Input = new Connection(this, NodeSide.Input, 0, "");
 
-                if (Actor == Actor.NPC)
-                    AddOutput("NPC Dialogue");
-                else if (Actor == Actor.Player)
-                {
-                    AddOutput("Dialogue Option 1");
-                    AddOutput("Dialogue Option 2");
-                    AddOutput("Dialogue Option 3");
-                }
+                    switch (Actor)
+                    {
+                        case Actor.NPC:
+                            AddOutput("NPC Dialogue");
+                            break;
+                        case Actor.Player:
+                            AddOutput("Dialogue Option 1");
+                            AddOutput("Dialogue Option 2");
+                            AddOutput("Dialogue Option 3");
+                            break;
+                    }
+
+                    break;
             }
+        }
+
+        internal void FinishLoading(Graph graph)
+        {
+            if (_cachedLoadingNode.Input != null)
+                Input = new Connection(graph, _cachedLoadingNode.Input);
+
+            Outputs.AddRange(_cachedLoadingNode.Outputs.Select(connection => new Connection(graph, connection)));
+
+            _cachedLoadingNode = null;
+        }
+
+        public void MakeConnections(Graph graph)
+        {
+            Input?.FinishLoading(graph);
+
+            foreach (var connection in Outputs)
+                connection.FinishLoading(graph);
         }
 
         private void AddOutput(string text)
@@ -70,6 +117,21 @@ namespace Ned
         {
             for (int i = 0; i < Outputs.Count; i++)
                 Outputs[i].ConnectionIndex = i;
+        }
+
+        internal SavedNode Save()
+        {
+            return new SavedNode
+            {
+                Actor = Actor,
+                Id = Id,
+                Input = Input?.Save(),
+                Outputs = Outputs.Select(connection => connection.Save()).ToList(),
+                Type = Type,
+                X = X,
+                Y = Y,
+                Name = Name
+            };
         }
     }
 }
