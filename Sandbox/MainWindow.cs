@@ -418,7 +418,8 @@ namespace Sandbox
 
             // Render diagnostic data
             GL.Enable(EnableCap.Texture2D);
-
+            
+            GL.Disable(EnableCap.DepthTest);
             GL.Color4(0, 0, 0, 1f);
             if (_keyboard[Key.D] && Focused)
             {
@@ -445,6 +446,7 @@ namespace Sandbox
                 GL.PopMatrix();
             }
             GL.Disable(EnableCap.Texture2D);
+            GL.Enable(EnableCap.DepthTest);
 
             GL.PopMatrix();
 
