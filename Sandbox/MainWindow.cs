@@ -197,7 +197,8 @@ namespace Sandbox
                         return;
                     }
 
-                    SelectedNode = null;
+                    if (!IsControlPressed())
+                        SelectedNode = null;
 
                     _selectionRectangle = new Rectangle(_mouse.X, _mouse.Y, 1, 1);
                     break;
@@ -270,8 +271,15 @@ namespace Sandbox
 
         private static void SelectAllInSelectionRectangle()
         {
-            SelectedNodes.Clear();
+            if (!IsControlPressed())
+                SelectedNode = null;
+
             SelectedNodes.AddRange(Graph.Where(node => _selectionRectangle.Pick(node.X, node.Y)));
+        }
+
+        private static bool IsControlPressed()
+        {
+            return _keyboard[Key.ControlLeft] || _keyboard[Key.ControlRight];
         }
 
         private void OnKeyDown(object sender, KeyboardKeyEventArgs e)
@@ -389,6 +397,7 @@ namespace Sandbox
             Fx.D2.DrawLine(-10, 0, 10, 0);
             Fx.D2.DrawLine(0, -10, 0, 10);
 
+            GL.Color3(Color.DarkGray);
             if (_selectionRectangle != null)
                 Fx.D2.DrawWireRectangle(_selectionRectangle.X, _selectionRectangle.Y, _selectionRectangle.Width, _selectionRectangle.Height);
 
@@ -418,7 +427,7 @@ namespace Sandbox
 
             // Render diagnostic data
             GL.Enable(EnableCap.Texture2D);
-            
+
             GL.Disable(EnableCap.DepthTest);
             GL.Color4(0, 0, 0, 1f);
             if (_keyboard[Key.D] && Focused)
