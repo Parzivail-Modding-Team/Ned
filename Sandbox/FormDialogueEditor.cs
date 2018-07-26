@@ -71,22 +71,15 @@ namespace Sandbox
                 lDialogOptions.SetObjects(null);
                 lDialogOptions.Enabled = false;
                 bAddDialogOption.Enabled = false;
+                bRemoveDialogOption.Enabled = false;
             }
             else
             {
                 lDialogOptions.SetObjects(node.Outputs);
                 lDialogOptions.Enabled = true;
                 bAddDialogOption.Enabled = true;
+                bRemoveDialogOption.Enabled = true;
             }
-        }
-
-        private void lDialogOptions_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode != Keys.Delete || _selectedNode == null) return;
-
-            _selectedNode.RemoveOutput((Connection)lDialogOptions.SelectedObject);
-            _selectedNode.BuildConnections();
-            lDialogOptions.BuildList();
         }
 
         private void bAddDialogOption_Click(object sender, EventArgs e)
@@ -94,6 +87,15 @@ namespace Sandbox
             if (_selectedNode == null || _selectedNode.Actor != Actor.Player) return;
 
             _selectedNode.Outputs.Add(new Connection(_selectedNode, NodeSide.Output, 0, "Dialog Option"));
+            _selectedNode.BuildConnections();
+            lDialogOptions.BuildList();
+        }
+
+        private void bRemoveDialogOption_Click(object sender, EventArgs e)
+        {
+            if (_selectedNode == null || _selectedNode.Actor != Actor.Player) return;
+
+            _selectedNode.RemoveOutput((Connection)lDialogOptions.SelectedObject);
             _selectedNode.BuildConnections();
             lDialogOptions.BuildList();
         }

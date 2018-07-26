@@ -30,7 +30,7 @@ namespace Ned
 
         public Node PickNode(float x, float y)
         {
-            return this.FirstOrDefault(node => node.Pick(x, y));
+            return this.OrderByDescending(node => node.Layer).FirstOrDefault(node => node.Pick(x, y));
         }
 
         public void ClearConnectionsFrom(Connection connection)

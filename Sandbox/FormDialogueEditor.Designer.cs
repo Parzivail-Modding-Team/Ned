@@ -29,9 +29,8 @@
         private void InitializeComponent()
         {
             this.gbDialogue = new System.Windows.Forms.GroupBox();
+            this.bRemoveDialogOption = new System.Windows.Forms.Button();
             this.bAddDialogOption = new System.Windows.Forms.Button();
-            this.lDialogOptions = new BrightIdeasSoftware.ObjectListView();
-            this.olvColumnDialogue = ((BrightIdeasSoftware.OLVColumn)(new BrightIdeasSoftware.OLVColumn()));
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.bFile = new System.Windows.Forms.ToolStripMenuItem();
             this.bOpen = new System.Windows.Forms.ToolStripMenuItem();
@@ -39,9 +38,11 @@
             this.bSaveAs = new System.Windows.Forms.ToolStripMenuItem();
             this.ofd = new System.Windows.Forms.OpenFileDialog();
             this.sfd = new System.Windows.Forms.SaveFileDialog();
+            this.lDialogOptions = new BrightIdeasSoftware.FastDataListView();
+            this.olvColumnDialog = ((BrightIdeasSoftware.OLVColumn)(new BrightIdeasSoftware.OLVColumn()));
             this.gbDialogue.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.lDialogOptions)).BeginInit();
             this.menuStrip1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.lDialogOptions)).BeginInit();
             this.SuspendLayout();
             // 
             // gbDialogue
@@ -49,8 +50,9 @@
             this.gbDialogue.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.gbDialogue.Controls.Add(this.bAddDialogOption);
             this.gbDialogue.Controls.Add(this.lDialogOptions);
+            this.gbDialogue.Controls.Add(this.bRemoveDialogOption);
+            this.gbDialogue.Controls.Add(this.bAddDialogOption);
             this.gbDialogue.Location = new System.Drawing.Point(14, 27);
             this.gbDialogue.Name = "gbDialogue";
             this.gbDialogue.Size = new System.Drawing.Size(507, 399);
@@ -58,47 +60,25 @@
             this.gbDialogue.TabStop = false;
             this.gbDialogue.Text = "Dialogue";
             // 
+            // bRemoveDialogOption
+            // 
+            this.bRemoveDialogOption.Location = new System.Drawing.Point(35, 19);
+            this.bRemoveDialogOption.Name = "bRemoveDialogOption";
+            this.bRemoveDialogOption.Size = new System.Drawing.Size(23, 23);
+            this.bRemoveDialogOption.TabIndex = 4;
+            this.bRemoveDialogOption.Text = "-";
+            this.bRemoveDialogOption.UseVisualStyleBackColor = true;
+            this.bRemoveDialogOption.Click += new System.EventHandler(this.bRemoveDialogOption_Click);
+            // 
             // bAddDialogOption
             // 
             this.bAddDialogOption.Location = new System.Drawing.Point(6, 19);
             this.bAddDialogOption.Name = "bAddDialogOption";
-            this.bAddDialogOption.Size = new System.Drawing.Size(117, 23);
+            this.bAddDialogOption.Size = new System.Drawing.Size(23, 23);
             this.bAddDialogOption.TabIndex = 3;
-            this.bAddDialogOption.Text = "Add Dialogue Option";
+            this.bAddDialogOption.Text = "+";
             this.bAddDialogOption.UseVisualStyleBackColor = true;
             this.bAddDialogOption.Click += new System.EventHandler(this.bAddDialogOption_Click);
-            // 
-            // lDialogOptions
-            // 
-            this.lDialogOptions.AllColumns.Add(this.olvColumnDialogue);
-            this.lDialogOptions.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.lDialogOptions.CellEditActivation = BrightIdeasSoftware.ObjectListView.CellEditActivateMode.DoubleClick;
-            this.lDialogOptions.CellEditEnterChangesRows = true;
-            this.lDialogOptions.CellEditUseWholeCell = false;
-            this.lDialogOptions.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.olvColumnDialogue});
-            this.lDialogOptions.Cursor = System.Windows.Forms.Cursors.Default;
-            this.lDialogOptions.Location = new System.Drawing.Point(6, 48);
-            this.lDialogOptions.Name = "lDialogOptions";
-            this.lDialogOptions.ShowGroups = false;
-            this.lDialogOptions.Size = new System.Drawing.Size(495, 345);
-            this.lDialogOptions.TabIndex = 2;
-            this.lDialogOptions.UseCompatibleStateImageBehavior = false;
-            this.lDialogOptions.View = System.Windows.Forms.View.Details;
-            this.lDialogOptions.KeyDown += new System.Windows.Forms.KeyEventHandler(this.lDialogOptions_KeyDown);
-            // 
-            // olvColumnDialogue
-            // 
-            this.olvColumnDialogue.AspectName = "Text";
-            this.olvColumnDialogue.AspectToStringFormat = "";
-            this.olvColumnDialogue.AutoCompleteEditor = false;
-            this.olvColumnDialogue.AutoCompleteEditorMode = System.Windows.Forms.AutoCompleteMode.None;
-            this.olvColumnDialogue.CellEditUseWholeCell = true;
-            this.olvColumnDialogue.Groupable = false;
-            this.olvColumnDialogue.Text = "Dialogue";
-            this.olvColumnDialogue.Width = 483;
             // 
             // menuStrip1
             // 
@@ -151,6 +131,35 @@
             this.sfd.Filter = "Ned Project|*.ned";
             this.sfd.Title = "Save";
             // 
+            // lDialogOptions
+            // 
+            this.lDialogOptions.AllColumns.Add(this.olvColumnDialog);
+            this.lDialogOptions.CellEditActivation = BrightIdeasSoftware.ObjectListView.CellEditActivateMode.DoubleClick;
+            this.lDialogOptions.CellEditUseWholeCell = false;
+            this.lDialogOptions.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.olvColumnDialog});
+            this.lDialogOptions.DataSource = null;
+            this.lDialogOptions.Location = new System.Drawing.Point(6, 48);
+            this.lDialogOptions.MultiSelect = false;
+            this.lDialogOptions.Name = "lDialogOptions";
+            this.lDialogOptions.ShowGroups = false;
+            this.lDialogOptions.Size = new System.Drawing.Size(495, 345);
+            this.lDialogOptions.TabIndex = 5;
+            this.lDialogOptions.UseCompatibleStateImageBehavior = false;
+            this.lDialogOptions.View = System.Windows.Forms.View.List;
+            this.lDialogOptions.VirtualMode = true;
+            // 
+            // olvColumnDialog
+            // 
+            this.olvColumnDialog.AspectName = "Text";
+            this.olvColumnDialog.AutoCompleteEditor = false;
+            this.olvColumnDialog.AutoCompleteEditorMode = System.Windows.Forms.AutoCompleteMode.None;
+            this.olvColumnDialog.ButtonSizing = BrightIdeasSoftware.OLVColumn.ButtonSizingMode.CellBounds;
+            this.olvColumnDialog.CellEditUseWholeCell = true;
+            this.olvColumnDialog.FillsFreeSpace = true;
+            this.olvColumnDialog.Groupable = false;
+            this.olvColumnDialog.Text = "Options";
+            // 
             // FormDialogueEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -164,17 +173,15 @@
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormDialogEditor_FormClosing);
             this.Load += new System.EventHandler(this.FormDialogEditor_Load);
             this.gbDialogue.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.lDialogOptions)).EndInit();
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.lDialogOptions)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
         }
 
         #endregion
-        private BrightIdeasSoftware.ObjectListView lDialogOptions;
-        private BrightIdeasSoftware.OLVColumn olvColumnDialogue;
         private System.Windows.Forms.Button bAddDialogOption;
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem bFile;
@@ -184,5 +191,8 @@
         private System.Windows.Forms.OpenFileDialog ofd;
         private System.Windows.Forms.SaveFileDialog sfd;
         private System.Windows.Forms.GroupBox gbDialogue;
+        private System.Windows.Forms.Button bRemoveDialogOption;
+        private BrightIdeasSoftware.FastDataListView lDialogOptions;
+        private BrightIdeasSoftware.OLVColumn olvColumnDialog;
     }
 }

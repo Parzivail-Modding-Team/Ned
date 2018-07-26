@@ -47,13 +47,16 @@ namespace Sandbox
 
     internal class ContextMenuItem : IShape
     {
+        private readonly MainWindow _window;
+
         public string Text { get; }
         public Action<ContextMenuItem> Action { get; }
         public int Index { get; set; }
         public ContextMenu Parent { get; set; }
 
-        public ContextMenuItem(string text, Action<ContextMenuItem> action)
+        public ContextMenuItem(MainWindow window, string text, Action<ContextMenuItem> action)
         {
+            _window = window;
             Text = text;
             Action = action;
         }
@@ -61,24 +64,24 @@ namespace Sandbox
         public void Render()
         {
             GL.PushAttrib(AttribMask.EnableBit);
-            var lineHeight = (int) (MainWindow.Font.Common.LineHeight * 1.5f);
+            var lineHeight = (int) (_window.Font.Common.LineHeight * 1.5f);
             GL.Disable(EnableCap.Texture2D);
             GL.Color3(Color.White);
             Fx.D2.DrawSolidRectangle(-1, lineHeight * Index - 1, Parent.Width + 2, lineHeight + 2);
-            GL.Color3(Pick(MainWindow.MouseScreenSpace.X, MainWindow.MouseScreenSpace.Y) ? Color.DodgerBlue : Color.Black);
+            GL.Color3(Pick(_window.MouseScreenSpace.X, _window.MouseScreenSpace.Y) ? Color.DodgerBlue : Color.Black);
             Fx.D2.DrawSolidRectangle(0, lineHeight * Index, Parent.Width, lineHeight);
             GL.PushMatrix();
             GL.Color3(Color.White);
             GL.Translate(3, lineHeight * Index + 3, 0);
             GL.Enable(EnableCap.Texture2D);
-            MainWindow.Font.RenderString(Text);
+            _window.Font.RenderString(Text);
             GL.PopMatrix();
             GL.PopAttrib();
         }
 
         public bool Pick(float x, float y)
         {
-            var lineHeight = (int)(MainWindow.Font.Common.LineHeight * 1.5f);
+            var lineHeight = (int)(_window.Font.Common.LineHeight * 1.5f);
             return new Rectangle(Parent.X, Parent.Y + lineHeight * Index, Parent.Width, lineHeight).Pick(x, y);
         }
     }

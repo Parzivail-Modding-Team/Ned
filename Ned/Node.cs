@@ -158,5 +158,15 @@ namespace Ned
         {
             return 2108858624 + EqualityComparer<Guid>.Default.GetHashCode(Id);
         }
+
+        public static bool operator ==(Node node1, Node node2)
+        {
+            return EqualityComparer<Node>.Default.Equals(node1, node2);
+        }
+
+        public static bool operator !=(Node node1, Node node2)
+        {
+            return !(node1 == node2);
+        }
     }
 }
