@@ -23,7 +23,7 @@ namespace Ned
 
         public bool Pick(float x, float y)
         {
-            return x >= Math.Min(X, X + Width) && x <= Math.Max(X, X + Width) && y >= Math.Min(Y, Y + Height) && y <= Math.Max(Y, Y + Height);
+            return x > Math.Min(X, X + Width) && x < Math.Max(X, X + Width) && y > Math.Min(Y, Y + Height) && y < Math.Max(Y, Y + Height);
         }
     }
 }

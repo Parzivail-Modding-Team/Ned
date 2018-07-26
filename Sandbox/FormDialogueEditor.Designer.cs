@@ -32,8 +32,6 @@
             this.bAddDialogOption = new System.Windows.Forms.Button();
             this.lDialogOptions = new BrightIdeasSoftware.ObjectListView();
             this.olvColumnDialogue = ((BrightIdeasSoftware.OLVColumn)(new BrightIdeasSoftware.OLVColumn()));
-            this.bAddNode = new System.Windows.Forms.Button();
-            this.cbActor = new System.Windows.Forms.ComboBox();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.bFile = new System.Windows.Forms.ToolStripMenuItem();
             this.bOpen = new System.Windows.Forms.ToolStripMenuItem();
@@ -53,8 +51,6 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.gbDialogue.Controls.Add(this.bAddDialogOption);
             this.gbDialogue.Controls.Add(this.lDialogOptions);
-            this.gbDialogue.Controls.Add(this.bAddNode);
-            this.gbDialogue.Controls.Add(this.cbActor);
             this.gbDialogue.Location = new System.Drawing.Point(14, 27);
             this.gbDialogue.Name = "gbDialogue";
             this.gbDialogue.Size = new System.Drawing.Size(507, 399);
@@ -103,25 +99,6 @@
             this.olvColumnDialogue.Groupable = false;
             this.olvColumnDialogue.Text = "Dialogue";
             this.olvColumnDialogue.Width = 483;
-            // 
-            // bAddNode
-            // 
-            this.bAddNode.Location = new System.Drawing.Point(426, 19);
-            this.bAddNode.Name = "bAddNode";
-            this.bAddNode.Size = new System.Drawing.Size(75, 23);
-            this.bAddNode.TabIndex = 0;
-            this.bAddNode.Text = "Add Node";
-            this.bAddNode.UseVisualStyleBackColor = true;
-            this.bAddNode.Click += new System.EventHandler(this.bAddNode_Click);
-            // 
-            // cbActor
-            // 
-            this.cbActor.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cbActor.FormattingEnabled = true;
-            this.cbActor.Location = new System.Drawing.Point(299, 19);
-            this.cbActor.Name = "cbActor";
-            this.cbActor.Size = new System.Drawing.Size(121, 21);
-            this.cbActor.TabIndex = 1;
             // 
             // menuStrip1
             // 
@@ -196,9 +173,6 @@
         }
 
         #endregion
-
-        private System.Windows.Forms.Button bAddNode;
-        private System.Windows.Forms.ComboBox cbActor;
         private BrightIdeasSoftware.ObjectListView lDialogOptions;
         private BrightIdeasSoftware.OLVColumn olvColumnDialogue;
         private System.Windows.Forms.Button bAddDialogOption;

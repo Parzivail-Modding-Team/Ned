@@ -15,11 +15,12 @@ namespace Ned
 
         public float X { get; set; }
         public float Y { get; set; }
+        public float Layer { get; set; }
         public string Name { get; }
         public NodeType Type { get; }
         public Actor Actor { get; }
 
-        public float Width => Type == NodeType.Option ? 240 : 90;
+        public float Width => Type == NodeType.Flow ? 240 : 90;
         public float Height => (Math.Max(Outputs.Count, 1) + 1) * 20 + 20;
 
         private SavedNode _cachedLoadingNode;
@@ -84,6 +85,7 @@ namespace Ned
         {
             X = other.X;
             Y = other.Y;
+            Layer = other.Layer;
             Name = other.Name;
             Type = other.Type;
             Actor = other.Actor;
@@ -126,7 +128,7 @@ namespace Ned
 
         public void BuildConnections()
         {
-            for (int i = 0; i < Outputs.Count; i++)
+            for (var i = 0; i < Outputs.Count; i++)
                 Outputs[i].ConnectionIndex = i;
         }
 
@@ -141,6 +143,7 @@ namespace Ned
                 Type = Type,
                 X = X,
                 Y = Y,
+                Layer = Layer,
                 Name = Name
             };
         }

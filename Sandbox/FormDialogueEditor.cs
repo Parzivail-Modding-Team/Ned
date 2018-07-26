@@ -41,11 +41,6 @@ namespace Sandbox
         private void FormDialogEditor_Load(object sender, EventArgs e)
         {
             Text = Resources.AppTitleStatic;
-            cbActor.DataSource = new List<Actor>
-            {
-                Actor.NPC,
-                Actor.Player
-            };
 
             ChangeSelectionTo(null);
 
@@ -67,25 +62,21 @@ namespace Sandbox
             return _graph;
         }
 
-        private void bAddNode_Click(object sender, EventArgs e)
-        {
-            var v = _nodeEditor.ScreenToCanvasSpace(new Vector2(10, 10));
-            _graph.Add(new Node(NodeType.Option, (Actor)cbActor.SelectedValue, v.X, v.Y));
-        }
-
         public void ChangeSelectionTo(Node node)
         {
             _selectedNode = node;
 
-            if (node == null || node.Type != NodeType.Option)
+            if (node == null || node.Type != NodeType.Flow)
             {
                 lDialogOptions.SetObjects(null);
                 lDialogOptions.Enabled = false;
+                bAddDialogOption.Enabled = false;
             }
             else
             {
                 lDialogOptions.SetObjects(node.Outputs);
                 lDialogOptions.Enabled = true;
+                bAddDialogOption.Enabled = true;
             }
         }
 

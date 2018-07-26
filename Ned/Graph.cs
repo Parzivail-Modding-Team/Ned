@@ -104,5 +104,17 @@ namespace Ned
 
             base.Remove(node);
         }
+
+        public new void Add(Node node)
+        {
+            base.Add(node);
+            RelayerNodes();
+        }
+
+        private void RelayerNodes()
+        {
+            for (var i = 0; i < this.Count; i++)
+                this[i].Layer = i;
+        }
     }
 }

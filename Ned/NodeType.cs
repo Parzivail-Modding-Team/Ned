@@ -9,7 +9,7 @@ namespace Ned
     public enum NodeType
     {
         Start,
-        Option,
+        Flow,
         End
     }
 }

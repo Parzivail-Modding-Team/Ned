@@ -11,8 +11,9 @@ namespace Ned
         public Guid Id;
         public SavedConnection Input;
         public List<SavedConnection> Outputs;
-        public float X { get; set; }
-        public float Y { get; set; }
+        public float X;
+        public float Y;
+        public float Layer;
         public string Name;
         public NodeType Type;
         public Actor Actor;

@@ -36,10 +36,11 @@ namespace Sandbox
 
         private static Node _copiedNode;
         private static bool _draggingNode;
-        private static Dictionary<Node, Vector2> _draggingNodeOffset = new Dictionary<Node, Vector2>();
         private static Rectangle _selectionRectangle;
 
         private static Connection _draggingConnection;
+
+        private static readonly Dictionary<Node, Vector2> DraggingNodeOffset = new Dictionary<Node, Vector2>();
         private static readonly Func<Connection, bool> DraggingConnectionPredicate = connection => _draggingConnection == null || _draggingConnection.ParentNode != connection.ParentNode && _draggingConnection.Side != connection.Side;
 
         /*
@@ -51,14 +52,16 @@ namespace Sandbox
         private Grid _grid;
         private readonly Profiler _profiler = new Profiler();
         private static KeyboardState _keyboard;
-        private static Vector2 _mouse = Vector2.Zero;
-        private static BitmapFont _font;
+        private static Vector2 _mouseCanvasSpace = Vector2.Zero;
         private static readonly byte[] StippleDiagonalLines = { 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88, 0x22, 0x22, 0x22, 0x22, 0x88, 0x88, 0x88, 0x88 };
         private Dictionary<string, TimeSpan> _profile = new Dictionary<string, TimeSpan>();
+        private ContextMenu _contextMenu = new ContextMenu(0, 0, 80);
 
         private static bool _draggingBackground;
 
+        public static Vector2 MouseScreenSpace = Vector2.Zero;
         public float Zoom { get; private set; } = 1;
+        public static BitmapFont Font { get; private set; }
 
         public MainWindow() : base(800, 600)
         {
@@ -100,12 +103,12 @@ namespace Sandbox
             GL.ClearColor(Color.White);
 
             // Load fonts
-            _font = BitmapFont.LoadBinaryFont("dina", FontBank.FontDina, FontBank.BmDina);
+            Font = BitmapFont.LoadBinaryFont("dina", FontBank.FontDina, FontBank.BmDina);
 
             // Load sparklines
-            _fpsSparkline = new Sparkline(_font, $"0-{(int)TargetRenderFrequency}fps", 50,
+            _fpsSparkline = new Sparkline(Font, $"0-{(int)TargetRenderFrequency}fps", 50,
                 (float)TargetRenderFrequency, Sparkline.SparklineStyle.Area);
-            _renderTimeSparkline = new Sparkline(_font, "0-50ms", 50, 50, Sparkline.SparklineStyle.Area);
+            _renderTimeSparkline = new Sparkline(Font, "0-50ms", 50, 50, Sparkline.SparklineStyle.Area);
 
             _grid = new Grid(this);
 
@@ -115,7 +118,76 @@ namespace Sandbox
             _dialogEditor = new FormDialogueEditor(this);
             _dialogEditor.Show();
 
+            CreateContextMenu(null);
+
             Lumberjack.Info("Window Loaded.");
+        }
+
+        private void CreateContextMenu(Node context)
+        {
+            _contextMenu = new ContextMenu(MouseScreenSpace.X + 1, MouseScreenSpace.Y + 1, 100);
+            if (context == null)
+            {
+                _contextMenu.Add(new ContextMenuItem("Add NPC", item =>
+                {
+                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
+                    Graph.Add(new Node(NodeType.Flow, Actor.NPC, v.X, v.Y));
+                }));
+
+                _contextMenu.Add(new ContextMenuItem("Add Player", item =>
+                {
+                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
+                    Graph.Add(new Node(NodeType.Flow, Actor.Player, v.X, v.Y));
+                }));
+
+
+
+                if (_copiedNode != null)
+                {
+                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
+                    _contextMenu.Add(new ContextMenuItem("Paste", item =>
+                    {
+                        _copiedNode.X = v.X;
+                        _copiedNode.Y = v.Y;
+
+                        Graph.Add(new Node(_copiedNode));
+                    }));
+                }
+            }
+            else
+            {
+                SelectedNode = context;
+
+                if (context.Type != NodeType.Flow) return;
+
+                _contextMenu.Add(new ContextMenuItem("Delete", item =>
+                {
+                    _dialogEditor.ChangeSelectionTo(null);
+                    Graph.RemoveAll(node => SelectedNodes.Contains(node) && node.Type == NodeType.Flow);
+                    SelectedNode = null;
+                }));
+
+                _contextMenu.Add(new ContextMenuItem("Cut", item =>
+                {
+                    _copiedNode = new Node(SelectedNode)
+                    {
+                        X = 0,
+                        Y = 0
+                    };
+
+                    _dialogEditor.ChangeSelectionTo(null);
+                    Graph.Remove(SelectedNode);
+                }));
+
+                _contextMenu.Add(new ContextMenuItem("Copy", item =>
+                {
+                    _copiedNode = new Node(SelectedNode)
+                    {
+                        X = 0,
+                        Y = 0
+                    };
+                }));
+            }
         }
 
         private void WindowVisualize_MouseWheel(object sender, MouseWheelEventArgs e)
@@ -159,11 +231,28 @@ namespace Sandbox
             switch (mouseButtonEventArgs.Button)
             {
                 case MouseButton.Right:
+                    CreateContextMenu(Graph.PickNode(_mouseCanvasSpace.X, _mouseCanvasSpace.Y));
+                    _contextMenu.Visible = true;
+                    break;
+                case MouseButton.Middle:
                     _draggingBackground = true;
                     break;
                 case MouseButton.Left:
-                    var x = _mouse.X;
-                    var y = _mouse.Y;
+                    var x = _mouseCanvasSpace.X;
+                    var y = _mouseCanvasSpace.Y;
+
+                    if (_contextMenu.Visible)
+                    {
+                        foreach (var menuItem in _contextMenu)
+                        {
+                            if (!menuItem.Pick(MouseScreenSpace.X, MouseScreenSpace.Y)) continue;
+
+                            menuItem.Action.Invoke(menuItem);
+                            _contextMenu.Visible = false;
+                            return;
+                        }
+                        _contextMenu.Visible = false;
+                    }
 
                     var clickedConnection = Graph.PickConnection(x, y, DraggingConnectionPredicate);
 
@@ -190,9 +279,9 @@ namespace Sandbox
 
                         _draggingNode = true;
 
-                        _draggingNodeOffset.Clear();
+                        DraggingNodeOffset.Clear();
                         foreach (var selectedNode in SelectedNodes)
-                            _draggingNodeOffset.Add(selectedNode, new Vector2(x - selectedNode.X, y - selectedNode.Y));
+                            DraggingNodeOffset.Add(selectedNode, new Vector2(x - selectedNode.X, y - selectedNode.Y));
 
                         return;
                     }
@@ -200,7 +289,7 @@ namespace Sandbox
                     if (!IsControlPressed())
                         SelectedNode = null;
 
-                    _selectionRectangle = new Rectangle(_mouse.X, _mouse.Y, 1, 1);
+                    _selectionRectangle = new Rectangle(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, 1, 1);
                     break;
             }
         }
@@ -209,13 +298,13 @@ namespace Sandbox
         {
             switch (mouseButtonEventArgs.Button)
             {
-                case MouseButton.Right:
+                case MouseButton.Middle:
                     _draggingBackground = false;
                     break;
                 case MouseButton.Left:
                     if (_draggingConnection != null)
                     {
-                        var picked = Graph.PickConnection(_mouse.X, _mouse.Y, DraggingConnectionPredicate);
+                        var picked = Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, DraggingConnectionPredicate);
                         if (picked != null)
                             _draggingConnection.ConnectTo(picked);
                     }
@@ -236,7 +325,8 @@ namespace Sandbox
 
         private void OnMouseMove(object sender, MouseMoveEventArgs mouseMoveEventArgs)
         {
-            _mouse = ScreenToCanvasSpace(new Vector2(mouseMoveEventArgs.X, mouseMoveEventArgs.Y));
+            MouseScreenSpace = new Vector2(mouseMoveEventArgs.X, mouseMoveEventArgs.Y);
+            _mouseCanvasSpace = ScreenToCanvasSpace(MouseScreenSpace);
 
             if (_draggingBackground)
             {
@@ -246,8 +336,8 @@ namespace Sandbox
 
             if (_selectionRectangle != null)
             {
-                _selectionRectangle.Width = _mouse.X - _selectionRectangle.X;
-                _selectionRectangle.Height = _mouse.Y - _selectionRectangle.Y;
+                _selectionRectangle.Width = _mouseCanvasSpace.X - _selectionRectangle.X;
+                _selectionRectangle.Height = _mouseCanvasSpace.Y - _selectionRectangle.Y;
 
                 SelectAllInSelectionRectangle();
                 return;
@@ -257,8 +347,8 @@ namespace Sandbox
             {
                 foreach (var node in SelectedNodes)
                 {
-                    node.X = _mouse.X - _draggingNodeOffset[node].X;
-                    node.Y = _mouse.Y - _draggingNodeOffset[node].Y;
+                    node.X = _mouseCanvasSpace.X - DraggingNodeOffset[node].X;
+                    node.Y = _mouseCanvasSpace.Y - DraggingNodeOffset[node].Y;
 
                     if (!_keyboard[Key.ShiftLeft])
                     {
@@ -287,10 +377,10 @@ namespace Sandbox
             if (!Focused)
                 return;
 
-            if (e.Key == Key.Delete && SelectedNode != null && SelectedNode.Type == NodeType.Option)
+            if (e.Key == Key.Delete)
             {
                 _dialogEditor.ChangeSelectionTo(null);
-                Graph.RemoveAll(node => SelectedNodes.Contains(node));
+                Graph.RemoveAll(node => SelectedNodes.Contains(node) && node.Type == NodeType.Flow);
                 SelectedNode = null;
             }
 
@@ -301,7 +391,7 @@ namespace Sandbox
                     _grid.Offset = Vector2.Zero;
             }
 
-            if (e.Control && e.Key == Key.C && SelectedNode != null && SelectedNode.Type == NodeType.Option)
+            if (e.Control && e.Key == Key.C && SelectedNode != null && SelectedNode.Type == NodeType.Flow)
             {
                 _copiedNode = new Node(SelectedNode)
                 {
@@ -310,7 +400,7 @@ namespace Sandbox
                 };
             }
 
-            if (e.Control && e.Key == Key.X && SelectedNode != null && SelectedNode.Type == NodeType.Option)
+            if (e.Control && e.Key == Key.X && SelectedNode != null && SelectedNode.Type == NodeType.Flow)
             {
                 _copiedNode = new Node(SelectedNode)
                 {
@@ -324,8 +414,8 @@ namespace Sandbox
 
             if (e.Control && e.Key == Key.V && _copiedNode != null)
             {
-                _copiedNode.X = _mouse.X;
-                _copiedNode.Y = _mouse.Y;
+                _copiedNode.X = _mouseCanvasSpace.X;
+                _copiedNode.Y = _mouseCanvasSpace.Y;
 
                 Graph.Add(new Node(_copiedNode));
             }
@@ -404,9 +494,9 @@ namespace Sandbox
             GL.LineWidth(3);
             if (_draggingConnection != null)
             {
-                var end = _mouse;
+                var end = _mouseCanvasSpace;
 
-                var picked = Graph.PickConnection(_mouse.X, _mouse.Y, DraggingConnectionPredicate);
+                var picked = Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, DraggingConnectionPredicate);
                 if (picked != null)
                 {
                     var b = picked.GetBounds();
@@ -417,31 +507,32 @@ namespace Sandbox
                 DrawConnection(_draggingConnection, end);
             }
 
-            for (var i = 0; i < Graph.Count; i++)
-                DrawNode(Graph[i], i);
+            foreach (var node in Graph)
+                DrawNode(node);
 
             foreach (var graphNode in Graph)
                 DrawConnections(graphNode);
 
             GL.PopMatrix();
 
-            // Render diagnostic data
+            GL.Disable(EnableCap.DepthTest);
             GL.Enable(EnableCap.Texture2D);
 
-            GL.Disable(EnableCap.DepthTest);
+            _contextMenu.Render();
+
             GL.Color4(0, 0, 0, 1f);
             if (_keyboard[Key.D] && Focused)
             {
                 // Static diagnostic header
 
                 GL.PushMatrix();
-                _font.RenderString($"FPS: {(int)Math.Ceiling(RenderFrequency)}\n" +
+                Font.RenderString($"FPS: {(int)Math.Ceiling(RenderFrequency)}\n" +
                                    $"Zoom: {Zoom}");
 
                 // Sparklines
-                GL.Translate(5, (int)(Height - _font.Common.LineHeight * 1.4f * 2), 0);
+                GL.Translate(5, (int)(Height - Font.Common.LineHeight * 1.4f * 2), 0);
                 _fpsSparkline.Render(Color.Blue, Color.LimeGreen);
-                GL.Translate(0, (int)(_font.Common.LineHeight * 1.4f), 0);
+                GL.Translate(0, (int)(Font.Common.LineHeight * 1.4f), 0);
                 _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
                 GL.PopMatrix();
             }
@@ -449,9 +540,9 @@ namespace Sandbox
             {
                 // Info footer
                 GL.PushMatrix();
-                _font.RenderString($"Ned - Development Build");
-                GL.Translate(0, Height - _font.Common.LineHeight, 0);
-                _font.RenderString("PRESS 'D' FOR DIAGNOSTICS");
+                Font.RenderString($"Ned - Development Build");
+                GL.Translate(0, Height - Font.Common.LineHeight, 0);
+                Font.RenderString("PRESS 'D' FOR DIAGNOSTICS");
                 GL.PopMatrix();
             }
             GL.Disable(EnableCap.Texture2D);
@@ -481,12 +572,12 @@ namespace Sandbox
             GL.PopMatrix();
         }
 
-        private void DrawNode(Node node, int zIndex)
+        private void DrawNode(Node node)
         {
             const int borderRadius = 6;
 
             GL.PushMatrix();
-            GL.Translate(0, 0, zIndex);
+            GL.Translate(0, 0, node.Layer);
             GL.Disable(EnableCap.Texture2D);
 
             if (SelectedNodes.Contains(node))
@@ -508,20 +599,22 @@ namespace Sandbox
             switch (node.Type)
             {
                 case NodeType.End:
+                    GL.Color3(Color.IndianRed);
+                    break;
                 case NodeType.Start:
                     GL.Color3(Color.LimeGreen);
                     break;
-                case NodeType.Option:
+                case NodeType.Flow:
                     switch (node.Actor)
                     {
                         case Actor.None:
-                            GL.Color3(Color.Red);
+                            GL.Color3(Color.Black);
                             break;
                         case Actor.NPC:
-                            GL.Color3(Color.Orange);
+                            GL.Color3(Color.MediumPurple);
                             break;
                         case Actor.Player:
-                            GL.Color3(Color.DodgerBlue);
+                            GL.Color3(Color.LightSkyBlue);
                             break;
                         default:
                             throw new ArgumentOutOfRangeException();
@@ -551,13 +644,14 @@ namespace Sandbox
         private void RenderString(string s)
         {
             if (Zoom >= 0.5)
-                _font.RenderString(s);
+                Font.RenderString(s);
             else
             {
                 GL.PushAttrib(AttribMask.EnableBit);
                 GL.Disable(EnableCap.Texture2D);
-                var size = _font.MeasureString(s);
-                Fx.D2.DrawSolidRectangle(0, 0, size.Width, size.Height);
+                var size = Font.MeasureString(s);
+                var halfHeight = size.Height / 2;
+                RoundRectangle(0, 0, size.Width, size.Height, halfHeight, halfHeight, halfHeight, halfHeight, PrimitiveType.TriangleFan);
                 GL.PopAttrib();
             }
         }
@@ -566,7 +660,7 @@ namespace Sandbox
         {
             GL.PushMatrix();
 
-            var pickedForDeletion = Graph.PickConnection(_mouse.X, _mouse.Y, DraggingConnectionPredicate) == connection && _keyboard[Key.ShiftLeft];
+            var pickedForDeletion = Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, DraggingConnectionPredicate) == connection && _keyboard[Key.ShiftLeft];
             var bound = connection.GetBounds();
 
             GL.Color3(Color.White);
@@ -581,7 +675,7 @@ namespace Sandbox
                     break;
                 case NodeSide.Output:
                     var s = MakeStringFit(connection.ParentNode.Width - 20, connection.Text);
-                    GL.Translate(bound.X - 12 - _font.MeasureString(s).Width, bound.Y - 6, 0.01);
+                    GL.Translate(bound.X - 12 - Font.MeasureString(s).Width, bound.Y - 6, 0.01);
                     RenderString(s);
                     break;
                 default:
@@ -599,7 +693,7 @@ namespace Sandbox
             GL.Color3(connection.Side == NodeSide.Input ? Color.DeepSkyBlue : Color.LimeGreen);
             Fx.D2.DrawSolidCircle(bound.X, bound.Y, 6);
 
-            var picked = Graph.PickConnection(_mouse.X, _mouse.Y, DraggingConnectionPredicate);
+            var picked = Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, DraggingConnectionPredicate);
             if (picked == connection && _draggingConnection != null || _draggingConnection == connection)
             {
                 GL.PushMatrix();
@@ -633,10 +727,10 @@ namespace Sandbox
 
         private static string MakeStringFit(float maxWidth, string text)
         {
-            if (_font.MeasureString(text).Width < maxWidth)
+            if (Font.MeasureString(text).Width < maxWidth)
                 return text;
 
-            while (text.Length > 0 && _font.MeasureString(text + "...").Width > maxWidth)
+            while (text.Length > 0 && Font.MeasureString(text + "...").Width > maxWidth)
                 text = text.Substring(0, text.Length - 1);
             return text + "...";
         }
