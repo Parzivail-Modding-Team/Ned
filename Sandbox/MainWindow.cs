@@ -66,13 +66,17 @@ namespace Sandbox
                 _contextMenu.Add(new ContextMenuItem(this, "Add NPC", item =>
                 {
                     var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    Graph.Add(new Node(NodeType.Flow, Actor.NPC, v.X, v.Y));
+                    var n = new Node(NodeType.Flow, Actor.NPC, v.X, v.Y);
+                    Graph.Add(n);
+                    _selectionHandler.Select(n);
                 }));
 
                 _contextMenu.Add(new ContextMenuItem(this, "Add Player", item =>
                 {
                     var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    Graph.Add(new Node(NodeType.Flow, Actor.Player, v.X, v.Y));
+                    var n = new Node(NodeType.Flow, Actor.Player, v.X, v.Y);
+                    Graph.Add(n);
+                    _selectionHandler.Select(n);
                 }));
 
                 if (!_selectionHandler.IsClipboardEmpty)
