@@ -8,16 +8,6 @@ namespace Sandbox
 {
     internal static class RenderUtil
     {
-        public static string MakeStringFit(BitmapFont font, float maxWidth, string text)
-        {
-            if (font.MeasureString(text).Width < maxWidth)
-                return text;
-
-            while (text.Length > 0 && font.MeasureString(text + "...").Width > maxWidth)
-                text = text.Substring(0, text.Length - 1);
-            return text + "...";
-        }
-
         public static void CentripetalCatmullRomTo(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
         {
             var numSegments = (int)((c - b).Length / 10);

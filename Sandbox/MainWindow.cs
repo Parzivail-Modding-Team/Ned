@@ -128,10 +128,12 @@ namespace Sandbox
                 (float) TargetRenderFrequency, Sparkline.SparklineStyle.Area);
             _renderTimeSparkline = new Sparkline(Font, "0-50ms", 50, 50, Sparkline.SparklineStyle.Area);
 
-            _grid = new Grid(this);
-
             // Init keyboard to ensure first frame won't NPE
             _keyboard = Keyboard.GetState();
+
+            Node.WidthCalculator = GetNodeWidth;
+
+            _grid = new Grid(this);
 
             _selectionHandler = new SelectionHandler(this);
 
@@ -145,6 +147,21 @@ namespace Sandbox
                 _draggingConnection.Side != connection.Side;
 
             Lumberjack.Info("Window Loaded.");
+        }
+
+        private int GetNodeWidth(Node node)
+        {
+            var width = 90;
+
+            width = (int)Math.Max(Font.MeasureString(node.Name).Width + 40, width);
+
+            if (node.Input != null)
+                width = (int) Math.Max(Font.MeasureString(node.Input.Text).Width + 40, width);
+
+            foreach (var connection in node.Outputs)
+                width = (int) Math.Max(Font.MeasureString(connection.Text).Width + 40, width);
+
+            return width;
         }
 
         private void HandleResize(object sender, EventArgs e)
@@ -488,7 +505,7 @@ namespace Sandbox
                     RenderString(connection.Text);
                     break;
                 case NodeSide.Output:
-                    var s = RenderUtil.MakeStringFit(Font, connection.ParentNode.Width - 20, connection.Text);
+                    var s = connection.Text;
                     GL.Translate(bound.X - 12 - Font.MeasureString(s).Width, bound.Y - 6, 0.01);
                     RenderString(s);
                     break;
@@ -551,13 +568,13 @@ namespace Sandbox
             if (_selectionHandler.SelectedNodes.Contains(node))
             {
                 GL.Color3(Color.White);
-                RenderUtil.RoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom,
+                RenderUtil.RoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width+ 2 / Zoom,
                     node.Height + 2 / Zoom, borderRadius, borderRadius, borderRadius, borderRadius,
                     PrimitiveType.TriangleFan);
                 GL.Translate(0, 0, 0.01);
                 GL.Color3(Color.Black);
                 MarchingAnts.Use();
-                RenderUtil.RoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom,
+                RenderUtil.RoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width+ 2 / Zoom,
                     node.Height + 2 / Zoom, borderRadius, borderRadius, borderRadius, borderRadius,
                     PrimitiveType.TriangleFan);
                 MarchingAnts.Release();

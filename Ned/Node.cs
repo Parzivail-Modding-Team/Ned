@@ -8,6 +8,8 @@ namespace Ned
 {
     public class Node : IShape
     {
+        public static Func<Node, int> WidthCalculator = node => node.Type == NodeType.Flow ? 240 : 90;
+
         public readonly Guid Id = Guid.NewGuid();
 
         public Connection Input { get; set; }
@@ -19,8 +21,8 @@ namespace Ned
         public string Name { get; }
         public NodeType Type { get; }
         public Actor Actor { get; }
-
-        public float Width => Type == NodeType.Flow ? 240 : 90;
+        
+        public float Width => WidthCalculator.Invoke(this);
         public float Height => (Math.Max(Outputs.Count, 1) + 1) * 20 + 20;
 
         private SavedNode _cachedLoadingNode;
@@ -118,7 +120,7 @@ namespace Ned
 
         public bool Pick(float x, float y)
         {
-            return x >= X && x <= X + Width && y >= Y && y <= Y + Height;
+            return x >= X && x <= X + Width&& y >= Y && y <= Y + Height;
         }
 
         public void RemoveOutput(Connection connection)

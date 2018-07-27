@@ -8,15 +8,15 @@ namespace Sandbox
 {
     class SelectionHandler
     {
-        private MainWindow _window;
+        private readonly MainWindow _window;
 
         public Rectangle SelectionRectangle;
         public readonly List<Node> SelectedNodes = new List<Node>();
-        private readonly List<Node> CopiedNodes = new List<Node>();
-        private readonly List<Vector2> CopiedNodeOffsets = new List<Vector2>();
+        private readonly List<Node> _copiedNodes = new List<Node>();
+        private readonly List<Vector2> _copiedNodeOffsets = new List<Vector2>();
 
         public Node SingleSelectedNode  => SelectedNodes.Count == 1 ? SelectedNodes[0] : null;
-        public bool IsClipboardEmpty => CopiedNodes.Count == 0;
+        public bool IsClipboardEmpty => _copiedNodes.Count == 0;
         public bool OneOrNoneSelected => SelectedNodes.Count <= 1;
 
         public SelectionHandler(MainWindow window)
@@ -59,15 +59,15 @@ namespace Sandbox
 
         public void Copy()
         {
-            CopiedNodes.Clear();
-            CopiedNodeOffsets.Clear();
+            _copiedNodes.Clear();
+            _copiedNodeOffsets.Clear();
 
-            CopiedNodes.AddRange(SelectedNodes.Select(node => new Node(node)));
+            _copiedNodes.AddRange(SelectedNodes.Select(node => new Node(node)));
 
-            var minX = CopiedNodes.Min(node => node.X);
-            var minY = CopiedNodes.Min(node => node.Y);
+            var minX = _copiedNodes.Min(node => node.X);
+            var minY = _copiedNodes.Min(node => node.Y);
 
-            CopiedNodeOffsets.AddRange(CopiedNodes.Select(node => new Vector2(node.X - minX, node.Y - minY)));
+            _copiedNodeOffsets.AddRange(_copiedNodes.Select(node => new Vector2(node.X - minX, node.Y - minY)));
         }
 
         public void Cut()
@@ -80,10 +80,10 @@ namespace Sandbox
         {
             var v = _window.ScreenToCanvasSpace(new Vector2(x, y));
 
-            for (var i = 0; i < CopiedNodes.Count; i++)
+            for (var i = 0; i < _copiedNodes.Count; i++)
             {
-                var copiedNode = CopiedNodes[i];
-                var offset = CopiedNodeOffsets[i];
+                var copiedNode = _copiedNodes[i];
+                var offset = _copiedNodeOffsets[i];
 
                 copiedNode.X = v.X + offset.X;
                 copiedNode.Y = v.Y + offset.Y;
