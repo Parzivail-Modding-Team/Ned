@@ -15,12 +15,12 @@ namespace Ned
         {
             foreach (var node in this)
             {
-                if (node.Input != null && node.Input.GetBounds().Pick(x, y) && (predicate == null || predicate.Invoke(node.Input)))
+                if (node.Input != null && node.Input.GetBounds().Pick(x, y)/* && (predicate == null || predicate.Invoke(node.Input))*/)
                     return node.Input;
 
                 foreach (var connection in node.Outputs)
                 {
-                    if (connection.GetBounds().Pick(x, y) && (predicate == null || predicate.Invoke(connection)))
+                    if (connection.GetBounds().Pick(x, y)/* && (predicate == null || predicate.Invoke(connection))*/)
                         return connection;
                 }
             }
@@ -107,6 +107,9 @@ namespace Ned
 
         public new void Add(Node node)
         {
+            if (Count >= 2000)
+                return;
+
             base.Add(node);
             RelayerNodes();
         }

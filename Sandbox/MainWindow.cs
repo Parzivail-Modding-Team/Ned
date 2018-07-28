@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Linq;
 using Ned;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
@@ -30,6 +31,7 @@ namespace Sandbox
         private Sparkline _renderTimeSparkline;
         private SelectionHandler _selectionHandler;
         private bool _shouldDie;
+        private Connection _pickedConnection;
 
         public FormDialogueEditor DialogEditor;
         public BitmapFont Font;
@@ -171,7 +173,7 @@ namespace Sandbox
             // Set up 2D mode
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
-            GL.Ortho(0, Width, Height, 0, -1000, 1000);
+            GL.Ortho(0, Width, Height, 0, -1000, 100);
             GL.MatrixMode(MatrixMode.Modelview);
             GL.LoadIdentity();
         }
@@ -363,7 +365,7 @@ namespace Sandbox
                      ClearBufferMask.StencilBufferBit);
 
             GL.PushMatrix();
-            GL.Scale(Zoom, Zoom, 1);
+            GL.Scale(Zoom, Zoom, 0.01f);
 
             GL.Disable(EnableCap.Texture2D);
 
@@ -427,7 +429,9 @@ namespace Sandbox
                 // Static diagnostic header
                 GL.PushMatrix();
                 Font.RenderString($"FPS: {(int)Math.Round(RenderFrequency)}\n" +
-                                  $"Zoom: {Zoom}");
+                                  $"Render Time: {(int)_profile["render"].TotalMilliseconds}ms\n" +
+                                  $"Zoom: {Zoom}\n" +
+                                  $"Nodes: {Graph.Count}", false);
 
                 // Sparklines
                 GL.Translate(5, (int)(Height - Font.Common.LineHeight * 1.4f * 2), 0);
@@ -462,12 +466,14 @@ namespace Sandbox
         private bool ScreenContains(Node node)
         {
             var nodeRect = node.GetBounds();
+            var nodeRectOthers = node.Outputs.Select(connection => connection?.ConnectedNode?.ParentNode?.GetBounds()).Where(rectangle => rectangle != null);
 
             var screenTopLeft = ScreenToCanvasSpace(Vector2.Zero);
             var screenBotRight = ScreenToCanvasSpace(new Vector2(Width, Height));
-
-            return nodeRect.Intersects(new Rectangle(screenTopLeft.X, screenTopLeft.Y,
-                screenBotRight.X - screenTopLeft.X, screenBotRight.Y - screenTopLeft.Y));
+            var screen = new Rectangle(screenTopLeft.X, screenTopLeft.Y,
+                screenBotRight.X - screenTopLeft.X, screenBotRight.Y - screenTopLeft.Y);
+            
+            return nodeRect.Intersects(screen) || nodeRectOthers.Any(node1 => node1.Intersects(screen));
         }
 
         private void RenderConnection(Connection connection, Connection end)
@@ -481,7 +487,7 @@ namespace Sandbox
             var v = new Vector2(200, 0);
             var bound = connection.GetBounds();
             var pos = new Vector2(bound.X, bound.Y);
-            RenderUtil.CentripetalCatmullRomTo(connection.Side == NodeSide.Input ? pos + v : pos - v, pos, end,
+            Fx.D2.CentripetalCatmullRomTo(connection.Side == NodeSide.Input ? pos + v : pos - v, pos, end,
                 connection.Side == NodeSide.Input ? end - v : end + v);
         }
 
@@ -502,13 +508,11 @@ namespace Sandbox
         {
             GL.PushMatrix();
 
-            var pickedForDeletion =
-                Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, _draggingConnectionPredicate) ==
-                connection && _keyboard[Key.ShiftLeft];
+            var pickedForDeletion = _pickedConnection == connection && _keyboard[Key.ShiftLeft];
             var bound = connection.GetBounds();
             var r = bound.Radius;
-            var rr = 2 * r;
-            var hr = r / 2;
+            var twor = 2 * r;
+            var halfr = r / 2;
 
             GL.Color3(Color.White);
             GL.Enable(EnableCap.Texture2D);
@@ -517,12 +521,12 @@ namespace Sandbox
             switch (connection.Side)
             {
                 case NodeSide.Input:
-                    GL.Translate(bound.X + rr, bound.Y - r, 0.01);
+                    GL.Translate(bound.X + twor, bound.Y - r, 0.01);
                     RenderString(connection.Text);
                     break;
                 case NodeSide.Output:
                     var s = connection.Text;
-                    GL.Translate(bound.X - rr - Font.MeasureString(s).Width, bound.Y - r, 0.01);
+                    GL.Translate(bound.X - twor - Font.MeasureString(s).Width, bound.Y - r, 0.01);
                     RenderString(s);
                     break;
                 default:
@@ -536,22 +540,21 @@ namespace Sandbox
             GL.Color3(Color.DarkSlateGray);
             //Fx.D2.DrawSolidCircle(bound.X, bound.Y, r + 2);
             if (connection.Side == NodeSide.Input)
-                RenderUtil.RoundRectangle(bound.X - r - 2, bound.Y - r - 2, rr + 4, rr + 4, r + 2, 0, r + 2, 0, PrimitiveType.TriangleFan);
+                Fx.D2.DrawSolidRoundRectangle(bound.X - r - 2, bound.Y - r - 2, twor + 4, twor + 4, r + 2, 0, r + 2, 0);
             else
-                RenderUtil.RoundRectangle(bound.X - r - 2, bound.Y - r - 2, rr + 4, rr + 4, 0, r + 2, 0, r + 2, PrimitiveType.TriangleFan);
+                Fx.D2.DrawSolidRoundRectangle(bound.X - r - 2, bound.Y - r - 2, twor + 4, twor + 4, 0, r + 2, 0, r + 2);
 
             GL.Translate(0, 0, 0.01);
 
             GL.Color3(connection.Side == NodeSide.Input ? Color.DeepSkyBlue : Color.LimeGreen);
             Fx.D2.DrawSolidCircle(bound.X, bound.Y, r);
-
-            var picked = Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, _draggingConnectionPredicate);
-            if (picked != null && _draggingConnection == connection)
+            
+            if (_pickedConnection != null && _draggingConnection == connection)
             {
                 GL.PushMatrix();
                 GL.Color3(Color.SlateGray);
                 GL.Translate(0, 0, 0.01);
-                Fx.D2.DrawSolidCircle(bound.X, bound.Y, hr);
+                Fx.D2.DrawSolidCircle(bound.X, bound.Y, halfr);
                 GL.PopMatrix();
             }
             else if (connection.ConnectedNode != null)
@@ -560,7 +563,7 @@ namespace Sandbox
                 GL.Color3(Color.DarkSlateGray);
 
                 GL.Translate(0, 0, 0.01);
-                Fx.D2.DrawSolidCircle(bound.X, bound.Y, hr);
+                Fx.D2.DrawSolidCircle(bound.X, bound.Y, halfr);
                 GL.PopMatrix();
             }
 
@@ -570,7 +573,7 @@ namespace Sandbox
                 GL.Color3(Color.Red);
 
                 GL.Translate(0, 0, 0.01);
-                Fx.D2.DrawSolidCircle(bound.X, bound.Y, hr);
+                Fx.D2.DrawSolidCircle(bound.X, bound.Y, halfr);
                 GL.PopMatrix();
             }
 
@@ -588,15 +591,13 @@ namespace Sandbox
             if (_selectionHandler.SelectedNodes.Contains(node))
             {
                 GL.Color3(Color.White);
-                RenderUtil.RoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom,
-                    node.Height + 2 / Zoom, borderRadius, borderRadius, borderRadius, borderRadius,
-                    PrimitiveType.TriangleFan);
+                Fx.D2.DrawSolidRoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom,
+                    node.Height + 2 / Zoom, borderRadius, borderRadius, borderRadius, borderRadius);
                 GL.Translate(0, 0, 0.01);
                 GL.Color3(Color.Black);
                 MarchingAnts.Use();
-                RenderUtil.RoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom,
-                    node.Height + 2 / Zoom, borderRadius, borderRadius, borderRadius, borderRadius,
-                    PrimitiveType.TriangleFan);
+                Fx.D2.DrawSolidRoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom,
+                    node.Height + 2 / Zoom, borderRadius, borderRadius, borderRadius, borderRadius);
                 MarchingAnts.Release();
             }
 
@@ -631,13 +632,12 @@ namespace Sandbox
                     throw new ArgumentOutOfRangeException();
             }
 
-            RenderUtil.RoundRectangle(node.X, node.Y, node.Width, node.Height, borderRadius, borderRadius, borderRadius, borderRadius, PrimitiveType.TriangleFan);
+            Fx.D2.DrawSolidRoundRectangle(node.X, node.Y, node.Width, node.Height, borderRadius, borderRadius, borderRadius, borderRadius);
 
             GL.Translate(0, 0, 0.01);
 
             GL.Color3(Color.DarkSlateGray);
-            RenderUtil.RoundRectangle(node.X + 2, node.Y + 20, node.Width - 4, node.Height - 20 - 2, borderRadius - 1, borderRadius - 1, borderRadius - 1,
-                borderRadius - 1, PrimitiveType.TriangleFan);
+            Fx.D2.DrawSolidRoundRectangle(node.X + 2, node.Y + 20, node.Width - 4, node.Height - 20 - 2, borderRadius - 1, borderRadius - 1, borderRadius - 1, borderRadius - 1);
 
             GL.Enable(EnableCap.Texture2D);
             GL.Color3(Color.White);
@@ -667,8 +667,7 @@ namespace Sandbox
                 GL.Disable(EnableCap.Texture2D);
                 var size = Font.MeasureString(s);
                 var halfHeight = size.Height / 2;
-                RenderUtil.RoundRectangle(0, 0, size.Width, size.Height, halfHeight, halfHeight, halfHeight, halfHeight,
-                    PrimitiveType.TriangleFan);
+                Fx.D2.DrawSolidRoundRectangle(0, 0, size.Width, size.Height, halfHeight, halfHeight, halfHeight, halfHeight);
                 GL.PopAttrib();
             }
         }
@@ -713,6 +712,8 @@ namespace Sandbox
                 _selectionHandler.Select(Graph, IsControlPressed() ? SelectionMode.Additive : SelectionMode.Normal);
                 return;
             }
+
+            _pickedConnection = Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y);
         }
     }
 }

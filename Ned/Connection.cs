@@ -9,12 +9,22 @@ namespace Ned
 
         public NodeSide Side { get; }
         public int ConnectionIndex { get; set; }
-        public string Text { get; set; }
+
+        public string Text
+        {
+            get => _text;
+            set
+            {
+                _text = value;
+                ParentNode?.RecalculateWidth();
+            }
+        }
 
         public Node ParentNode { get; set; }
         public Connection ConnectedNode { get; set; }
 
         private Guid? _cachedLoadingConnection;
+        private string _text;
 
         public Connection(Node parentNode, NodeSide side, int connectionIndex, string text)
         {

@@ -21,8 +21,8 @@ namespace Ned
         public string Name { get; }
         public NodeType Type { get; }
         public Actor Actor { get; }
-        
-        public float Width => WidthCalculator.Invoke(this);
+
+        public float Width { get; private set; } = 90;
         public float Height => (Math.Max(Outputs.Count, 1) + 1) * 20 + 20;
 
         private SavedNode _cachedLoadingNode;
@@ -44,6 +44,8 @@ namespace Ned
             Actor = node.Actor;
 
             _cachedLoadingNode = node;
+
+            RecalculateWidth();
         }
 
         public Node(NodeType type, Actor actor, float x, float y)
@@ -81,6 +83,8 @@ namespace Ned
 
                     break;
             }
+
+            RecalculateWidth();
         }
 
         public Node(Node other)
@@ -93,6 +97,7 @@ namespace Ned
             Actor = other.Actor;
             Input = other.Input == null ? null : new Connection(this, other.Input);
             Outputs = other.Outputs.Select(connection => new Connection(this, connection)).ToList();
+            RecalculateWidth();
         }
 
         internal void FinishLoading(Graph graph)
@@ -103,6 +108,7 @@ namespace Ned
             Outputs.AddRange(_cachedLoadingNode.Outputs.Select(connection => new Connection(graph, connection)));
 
             _cachedLoadingNode = null;
+            RecalculateWidth();
         }
 
         public void MakeConnections(Graph graph)
@@ -116,6 +122,12 @@ namespace Ned
         private void AddOutput(string text)
         {
             Outputs.Add(new Connection(this, NodeSide.Output, Outputs.Count, text));
+            RecalculateWidth();
+        }
+
+        public void RecalculateWidth()
+        {
+            Width = WidthCalculator.Invoke(this);
         }
 
         public bool Pick(float x, float y)
@@ -131,6 +143,7 @@ namespace Ned
         public void RemoveOutput(Connection connection)
         {
             Outputs.Remove(connection);
+            RecalculateWidth();
         }
 
         public void BuildConnections()

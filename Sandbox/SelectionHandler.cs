@@ -54,7 +54,10 @@ namespace Sandbox
 
         public void Delete()
         {
-            _window.Graph.RemoveAll(node => SelectedNodes.Contains(node) && node.Type == NodeType.Flow);
+            var nodes = _window.Graph.Where(node => SelectedNodes.Contains(node) && node.Type == NodeType.Flow)
+                .ToList();
+            foreach (var node in nodes)
+                _window.Graph.Remove(node);
         }
 
         public void Copy()
@@ -69,6 +72,9 @@ namespace Sandbox
                     connection.ConnectedNode = null;
                 return n;
             }));
+
+            if (_copiedNodes.Count == 0)
+                return;
 
             var minX = _copiedNodes.Min(node => node.X);
             var minY = _copiedNodes.Min(node => node.Y);
