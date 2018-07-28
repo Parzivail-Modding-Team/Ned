@@ -88,7 +88,7 @@ namespace Sandbox
 
             _selectedNode.Outputs.Add(new Connection(_selectedNode, NodeSide.Output, 0, "Dialog Option"));
             _selectedNode.BuildConnections();
-            lDialogOptions.BuildList();
+            lDialogOptions.SetObjects(_selectedNode.Outputs);
         }
 
         private void bRemoveDialogOption_Click(object sender, EventArgs e)
@@ -97,7 +97,7 @@ namespace Sandbox
 
             _selectedNode.RemoveOutput((Connection)lDialogOptions.SelectedObject);
             _selectedNode.BuildConnections();
-            lDialogOptions.BuildList();
+            lDialogOptions.SetObjects(_selectedNode.Outputs);
         }
 
         private void bOpen_Click(object sender, EventArgs e)

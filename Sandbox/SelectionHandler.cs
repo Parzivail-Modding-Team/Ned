@@ -88,7 +88,7 @@ namespace Sandbox
             Delete();
         }
 
-        public void Paste(float x, float y)
+        public void Paste(float x, float y, bool snap, float snapPitch)
         {
             var v = new Vector2(x, y);
 
@@ -99,6 +99,12 @@ namespace Sandbox
 
                 copiedNode.X = v.X + offset.X;
                 copiedNode.Y = v.Y + offset.Y;
+
+                if (snap)
+                {
+                    copiedNode.X = (int)(Math.Floor(copiedNode.X / snapPitch) * snapPitch);
+                    copiedNode.Y = (int)(Math.Floor(copiedNode.Y / snapPitch) * snapPitch);
+                }
 
                 _window.Graph.Add(new Node(copiedNode));
             }

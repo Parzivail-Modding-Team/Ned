@@ -83,7 +83,7 @@ namespace Sandbox
 
                 if (!_selectionHandler.IsClipboardEmpty)
                     _contextMenu.Add(new ContextMenuItem(this, "CTRL+V", "Paste",
-                        item => _selectionHandler.Paste(_contextMenu.X, _contextMenu.Y)));
+                        item => _selectionHandler.Paste(_contextMenu.X, _contextMenu.Y, !_keyboard[Key.ShiftLeft], _grid.Pitch)));
             }
             else
             {
@@ -206,7 +206,7 @@ namespace Sandbox
 
             if (e.Control && e.Key == Key.X) _selectionHandler.Cut();
 
-            if (e.Control && e.Key == Key.V) _selectionHandler.Paste(_mouseCanvasSpace.X, _mouseCanvasSpace.Y);
+            if (e.Control && e.Key == Key.V) _selectionHandler.Paste(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, !_keyboard[Key.ShiftLeft], _grid.Pitch);
         }
 
         private void OnMouseDown(object sender, MouseButtonEventArgs mouseButtonEventArgs)
@@ -286,8 +286,6 @@ namespace Sandbox
                 _grid.Offset += new Vector2(mouseMoveEventArgs.XDelta, mouseMoveEventArgs.YDelta) / Zoom;
                 return;
             }
-
-
 
             if (_selectionHandler.SelectionRectangle != null)
             {
@@ -396,9 +394,8 @@ namespace Sandbox
             {
                 var end = _mouseCanvasSpace;
 
-                var picked =
-                    Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, _draggingConnectionPredicate);
-                if (picked != null)
+                var picked = _pickedConnection;
+                if (picked != null && picked.Side != _draggingConnection.Side)
                 {
                     var b = picked.GetBounds();
                     end = new Vector2(b.X, b.Y);
@@ -549,7 +546,7 @@ namespace Sandbox
             GL.Color3(connection.Side == NodeSide.Input ? Color.DeepSkyBlue : Color.LimeGreen);
             Fx.D2.DrawSolidCircle(bound.X, bound.Y, r);
             
-            if (_pickedConnection != null && _draggingConnection == connection)
+            if (_pickedConnection != null && _draggingConnection == connection && _pickedConnection.Side != _draggingConnection.Side)
             {
                 GL.PushMatrix();
                 GL.Color3(Color.SlateGray);
