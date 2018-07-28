@@ -33,6 +33,8 @@ namespace Sandbox
             GL.PushMatrix();
             GL.Translate(X, Y, 0);
             foreach (var menuItem in this)
+                menuItem.RenderBackground();
+            foreach (var menuItem in this)
                 menuItem.Render();
             GL.PopMatrix();
         }
@@ -49,6 +51,7 @@ namespace Sandbox
     {
         private readonly MainWindow _window;
 
+        public string Shortcut { get; }
         public string Text { get; }
         public Action<ContextMenuItem> Action { get; }
         public int Index { get; set; }
@@ -61,21 +64,47 @@ namespace Sandbox
             Action = action;
         }
 
+        public ContextMenuItem(MainWindow window, string shortcut, string text, Action<ContextMenuItem> action)
+        {
+            _window = window;
+            Shortcut = shortcut;
+            Text = text;
+            Action = action;
+        }
+
         public void Render()
         {
+            var picked = Pick(_window.MouseScreenSpace.X, _window.MouseScreenSpace.Y);
+
             GL.PushAttrib(AttribMask.EnableBit);
-            var lineHeight = (int) (_window.Font.Common.LineHeight * 1.5f);
+            var lineHeight = (int)(_window.Font.Common.LineHeight * 1.5f);
             GL.Disable(EnableCap.Texture2D);
-            GL.Color3(Color.White);
-            Fx.D2.DrawSolidRectangle(-1, lineHeight * Index - 1, Parent.Width + 2, lineHeight + 2);
-            GL.Color3(Pick(_window.MouseScreenSpace.X, _window.MouseScreenSpace.Y) ? Color.DodgerBlue : Color.Black);
+            GL.Color3(picked ? Color.LightGray : Color.White);
             Fx.D2.DrawSolidRectangle(0, lineHeight * Index, Parent.Width, lineHeight);
             GL.PushMatrix();
-            GL.Color3(Color.White);
+            GL.Color3(Color.Black);
             GL.Translate(3, lineHeight * Index + 3, 0);
             GL.Enable(EnableCap.Texture2D);
-            _window.Font.RenderString(Text);
+            if (Shortcut == null)
+                _window.Font.RenderString(Text);
+            else
+            {
+                _window.Font.RenderString($"{Shortcut} {Text}");
+                GL.Color3(Color.DarkGray);
+                _window.Font.RenderString(Shortcut);
+            }
             GL.PopMatrix();
+            GL.PopAttrib();
+        }
+
+        public void RenderBackground()
+        {
+            GL.PushAttrib(AttribMask.EnableBit);
+            var lineHeight = (int)(_window.Font.Common.LineHeight * 1.5f);
+            GL.Disable(EnableCap.Texture2D);
+            GL.Color3(Color.Black);
+            Fx.D2.DrawSolidRectangle(-1, lineHeight * Index - 1, Parent.Width + 2, lineHeight + 2);
+            Fx.D2.DrawSolidRectangle(1, lineHeight * Index + 1, Parent.Width + 1, lineHeight + 1);
             GL.PopAttrib();
         }
 

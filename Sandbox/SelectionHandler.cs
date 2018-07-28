@@ -32,13 +32,13 @@ namespace Sandbox
             {
                 case SelectionMode.Normal:
                     SelectedNodes.Clear();
-                    SelectedNodes.AddRange(graph.Where(node => SelectionRectangle.Pick(node.X, node.Y)));
+                    SelectedNodes.AddRange(graph.Where(node => SelectionRectangle.Intersects(node.GetBounds())));
                     break;
                 case SelectionMode.Additive:
-                    SelectedNodes.AddRange(graph.Where(node => SelectionRectangle.Pick(node.X, node.Y)));
+                    SelectedNodes.AddRange(graph.Where(node => SelectionRectangle.Intersects(node.GetBounds())));
                     break;
                 case SelectionMode.Subtractive:
-                    SelectedNodes.RemoveAll(node => SelectionRectangle.Pick(node.X, node.Y));
+                    SelectedNodes.RemoveAll(node => SelectionRectangle.Intersects(node.GetBounds()));
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
@@ -62,7 +62,13 @@ namespace Sandbox
             _copiedNodes.Clear();
             _copiedNodeOffsets.Clear();
 
-            _copiedNodes.AddRange(SelectedNodes.Select(node => new Node(node)));
+            _copiedNodes.AddRange(SelectedNodes.Where(node => node.Type == NodeType.Flow).Select(node =>
+            {
+                var n = new Node(node);
+                foreach (var connection in n.Outputs)
+                    connection.ConnectedNode = null;
+                return n;
+            }));
 
             var minX = _copiedNodes.Min(node => node.X);
             var minY = _copiedNodes.Min(node => node.Y);
@@ -78,7 +84,7 @@ namespace Sandbox
 
         public void Paste(float x, float y)
         {
-            var v = _window.ScreenToCanvasSpace(new Vector2(x, y));
+            var v = new Vector2(x, y);
 
             for (var i = 0; i < _copiedNodes.Count; i++)
             {

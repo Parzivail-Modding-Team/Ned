@@ -6,7 +6,7 @@ using Newtonsoft.Json.Serialization;
 
 namespace Ned
 {
-    public class Node : IShape
+    public class Node
     {
         public static Func<Node, int> WidthCalculator = node => node.Type == NodeType.Flow ? 240 : 90;
 
@@ -120,7 +120,12 @@ namespace Ned
 
         public bool Pick(float x, float y)
         {
-            return x >= X && x <= X + Width&& y >= Y && y <= Y + Height;
+            return GetBounds().Pick(x, y);
+        }
+
+        public Rectangle GetBounds()
+        {
+            return new Rectangle(X, Y, Width, Height);
         }
 
         public void RemoveOutput(Connection connection)

@@ -80,7 +80,7 @@ namespace Sandbox
                 }));
 
                 if (!_selectionHandler.IsClipboardEmpty)
-                    _contextMenu.Add(new ContextMenuItem(this, "Paste",
+                    _contextMenu.Add(new ContextMenuItem(this, "CTRL+V", "Paste",
                         item => _selectionHandler.Paste(_contextMenu.X, _contextMenu.Y)));
             }
             else
@@ -90,9 +90,9 @@ namespace Sandbox
                 if (_selectionHandler.OneOrNoneSelected)
                     _selectionHandler.Select(context);
 
-                _contextMenu.Add(new ContextMenuItem(this, "Delete", item => _selectionHandler.Delete()));
-                _contextMenu.Add(new ContextMenuItem(this, "Cut", item => _selectionHandler.Cut()));
-                _contextMenu.Add(new ContextMenuItem(this, "Copy", item => _selectionHandler.Copy()));
+                _contextMenu.Add(new ContextMenuItem(this, "DEL", "Delete", item => _selectionHandler.Delete()));
+                _contextMenu.Add(new ContextMenuItem(this, "CTRL+X", "Cut", item => _selectionHandler.Cut()));
+                _contextMenu.Add(new ContextMenuItem(this, "CTRL+C", "Copy", item => _selectionHandler.Copy()));
             }
         }
 
@@ -124,8 +124,8 @@ namespace Sandbox
             Font = BitmapFont.LoadBinaryFont("dina", FontBank.FontDina, FontBank.BmDina);
 
             // Load sparklines
-            _fpsSparkline = new Sparkline(Font, $"0-{(int) TargetRenderFrequency}fps", 50,
-                (float) TargetRenderFrequency, Sparkline.SparklineStyle.Area);
+            _fpsSparkline = new Sparkline(Font, $"0-{(int)TargetRenderFrequency}fps", 50,
+                (float)TargetRenderFrequency, Sparkline.SparklineStyle.Area);
             _renderTimeSparkline = new Sparkline(Font, "0-50ms", 50, 50, Sparkline.SparklineStyle.Area);
 
             // Init keyboard to ensure first frame won't NPE
@@ -156,10 +156,10 @@ namespace Sandbox
             width = (int)Math.Max(Font.MeasureString(node.Name).Width + 40, width);
 
             if (node.Input != null)
-                width = (int) Math.Max(Font.MeasureString(node.Input.Text).Width + 40, width);
+                width = (int)Math.Max(Font.MeasureString(node.Input.Text).Width + 40, width);
 
             foreach (var connection in node.Outputs)
-                width = (int) Math.Max(Font.MeasureString(connection.Text).Width + 40, width);
+                width = (int)Math.Max(Font.MeasureString(connection.Text).Width + 40, width);
 
             return width;
         }
@@ -171,7 +171,7 @@ namespace Sandbox
             // Set up 2D mode
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
-            GL.Ortho(0, Width, Height, 0, -100, 100);
+            GL.Ortho(0, Width, Height, 0, -1000, 1000);
             GL.MatrixMode(MatrixMode.Modelview);
             GL.LoadIdentity();
         }
@@ -285,14 +285,14 @@ namespace Sandbox
                 return;
             }
 
+
+
             if (_selectionHandler.SelectionRectangle != null)
             {
                 _selectionHandler.SelectionRectangle.Width =
                     _mouseCanvasSpace.X - _selectionHandler.SelectionRectangle.X;
                 _selectionHandler.SelectionRectangle.Height =
                     _mouseCanvasSpace.Y - _selectionHandler.SelectionRectangle.Y;
-
-                _selectionHandler.Select(Graph, IsControlPressed() ? SelectionMode.Additive : SelectionMode.Normal);
                 return;
             }
 
@@ -304,8 +304,8 @@ namespace Sandbox
 
                     if (!_keyboard[Key.ShiftLeft])
                     {
-                        node.X = (int) (Math.Floor(node.X / _grid.Pitch) * _grid.Pitch);
-                        node.Y = (int) (Math.Floor(node.Y / _grid.Pitch) * _grid.Pitch);
+                        node.X = (int)(Math.Floor(node.X / _grid.Pitch) * _grid.Pitch);
+                        node.Y = (int)(Math.Floor(node.Y / _grid.Pitch) * _grid.Pitch);
                     }
                 }
         }
@@ -353,9 +353,9 @@ namespace Sandbox
 
             // Update sparklines
             if (_profile.ContainsKey("render"))
-                _renderTimeSparkline.Enqueue((float) _profile["render"].TotalMilliseconds);
+                _renderTimeSparkline.Enqueue((float)_profile["render"].TotalMilliseconds);
 
-            _fpsSparkline.Enqueue((float) RenderFrequency);
+            _fpsSparkline.Enqueue((float)RenderFrequency);
 
             // Reset the view
             GL.Clear(ClearBufferMask.ColorBufferBit |
@@ -407,10 +407,12 @@ namespace Sandbox
             }
 
             foreach (var node in Graph)
+            {
+                if (!ScreenContains(node))
+                    continue;
                 RenderNode(node);
-
-            foreach (var graphNode in Graph)
-                RenderConnections(graphNode);
+                RenderConnections(node);
+            }
 
             GL.PopMatrix();
 
@@ -424,13 +426,13 @@ namespace Sandbox
             {
                 // Static diagnostic header
                 GL.PushMatrix();
-                Font.RenderString($"FPS: {(int) Math.Round(RenderFrequency)}\n" +
+                Font.RenderString($"FPS: {(int)Math.Round(RenderFrequency)}\n" +
                                   $"Zoom: {Zoom}");
 
                 // Sparklines
-                GL.Translate(5, (int) (Height - Font.Common.LineHeight * 1.4f * 2), 0);
+                GL.Translate(5, (int)(Height - Font.Common.LineHeight * 1.4f * 2), 0);
                 _fpsSparkline.Render(Color.Blue, Color.LimeGreen);
-                GL.Translate(0, (int) (Font.Common.LineHeight * 1.4f), 0);
+                GL.Translate(0, (int)(Font.Common.LineHeight * 1.4f), 0);
                 _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
                 GL.PopMatrix();
             }
@@ -455,6 +457,17 @@ namespace Sandbox
             // Stop profiling and get the results
             _profiler.End();
             _profile = _profiler.Reset();
+        }
+
+        private bool ScreenContains(Node node)
+        {
+            var nodeRect = node.GetBounds();
+
+            var screenTopLeft = ScreenToCanvasSpace(Vector2.Zero);
+            var screenBotRight = ScreenToCanvasSpace(new Vector2(Width, Height));
+
+            return nodeRect.Intersects(new Rectangle(screenTopLeft.X, screenTopLeft.Y,
+                screenBotRight.X - screenTopLeft.X, screenBotRight.Y - screenTopLeft.Y));
         }
 
         private void RenderConnection(Connection connection, Connection end)
@@ -493,6 +506,9 @@ namespace Sandbox
                 Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, _draggingConnectionPredicate) ==
                 connection && _keyboard[Key.ShiftLeft];
             var bound = connection.GetBounds();
+            var r = bound.Radius;
+            var rr = 2 * r;
+            var hr = r / 2;
 
             GL.Color3(Color.White);
             GL.Enable(EnableCap.Texture2D);
@@ -501,12 +517,12 @@ namespace Sandbox
             switch (connection.Side)
             {
                 case NodeSide.Input:
-                    GL.Translate(bound.X + 12, bound.Y - 6, 0.01);
+                    GL.Translate(bound.X + rr, bound.Y - r, 0.01);
                     RenderString(connection.Text);
                     break;
                 case NodeSide.Output:
                     var s = connection.Text;
-                    GL.Translate(bound.X - 12 - Font.MeasureString(s).Width, bound.Y - 6, 0.01);
+                    GL.Translate(bound.X - rr - Font.MeasureString(s).Width, bound.Y - r, 0.01);
                     RenderString(s);
                     break;
                 default:
@@ -518,20 +534,24 @@ namespace Sandbox
             GL.Disable(EnableCap.Texture2D);
 
             GL.Color3(Color.DarkSlateGray);
-            Fx.D2.DrawSolidCircle(bound.X, bound.Y, 8);
+            //Fx.D2.DrawSolidCircle(bound.X, bound.Y, r + 2);
+            if (connection.Side == NodeSide.Input)
+                RenderUtil.RoundRectangle(bound.X - r - 2, bound.Y - r - 2, rr + 4, rr + 4, r + 2, 0, r + 2, 0, PrimitiveType.TriangleFan);
+            else
+                RenderUtil.RoundRectangle(bound.X - r - 2, bound.Y - r - 2, rr + 4, rr + 4, 0, r + 2, 0, r + 2, PrimitiveType.TriangleFan);
 
             GL.Translate(0, 0, 0.01);
 
             GL.Color3(connection.Side == NodeSide.Input ? Color.DeepSkyBlue : Color.LimeGreen);
-            Fx.D2.DrawSolidCircle(bound.X, bound.Y, 6);
+            Fx.D2.DrawSolidCircle(bound.X, bound.Y, r);
 
             var picked = Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, _draggingConnectionPredicate);
-            if (picked == connection && _draggingConnection != null || _draggingConnection == connection)
+            if (picked != null && _draggingConnection == connection)
             {
                 GL.PushMatrix();
                 GL.Color3(Color.SlateGray);
                 GL.Translate(0, 0, 0.01);
-                Fx.D2.DrawSolidCircle(bound.X, bound.Y, 3);
+                Fx.D2.DrawSolidCircle(bound.X, bound.Y, hr);
                 GL.PopMatrix();
             }
             else if (connection.ConnectedNode != null)
@@ -540,7 +560,7 @@ namespace Sandbox
                 GL.Color3(Color.DarkSlateGray);
 
                 GL.Translate(0, 0, 0.01);
-                Fx.D2.DrawSolidCircle(bound.X, bound.Y, 3);
+                Fx.D2.DrawSolidCircle(bound.X, bound.Y, hr);
                 GL.PopMatrix();
             }
 
@@ -550,7 +570,7 @@ namespace Sandbox
                 GL.Color3(Color.Red);
 
                 GL.Translate(0, 0, 0.01);
-                Fx.D2.DrawSolidCircle(bound.X, bound.Y, 3);
+                Fx.D2.DrawSolidCircle(bound.X, bound.Y, hr);
                 GL.PopMatrix();
             }
 
@@ -568,23 +588,19 @@ namespace Sandbox
             if (_selectionHandler.SelectedNodes.Contains(node))
             {
                 GL.Color3(Color.White);
-                RenderUtil.RoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width+ 2 / Zoom,
+                RenderUtil.RoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom,
                     node.Height + 2 / Zoom, borderRadius, borderRadius, borderRadius, borderRadius,
                     PrimitiveType.TriangleFan);
                 GL.Translate(0, 0, 0.01);
                 GL.Color3(Color.Black);
                 MarchingAnts.Use();
-                RenderUtil.RoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width+ 2 / Zoom,
+                RenderUtil.RoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom,
                     node.Height + 2 / Zoom, borderRadius, borderRadius, borderRadius, borderRadius,
                     PrimitiveType.TriangleFan);
                 MarchingAnts.Release();
             }
 
             GL.Translate(0, 0, 0.01);
-
-            GL.Color3(Color.DarkSlateGray);
-            RenderUtil.RoundRectangle(node.X, node.Y + 20, node.Width, node.Height - 20, 0, 0, borderRadius,
-                borderRadius, PrimitiveType.TriangleFan);
 
             switch (node.Type)
             {
@@ -615,8 +631,13 @@ namespace Sandbox
                     throw new ArgumentOutOfRangeException();
             }
 
-            RenderUtil.RoundRectangle(node.X, node.Y, node.Width, 20, borderRadius, borderRadius, 0, 0,
-                PrimitiveType.TriangleFan);
+            RenderUtil.RoundRectangle(node.X, node.Y, node.Width, node.Height, borderRadius, borderRadius, borderRadius, borderRadius, PrimitiveType.TriangleFan);
+
+            GL.Translate(0, 0, 0.01);
+
+            GL.Color3(Color.DarkSlateGray);
+            RenderUtil.RoundRectangle(node.X + 2, node.Y + 20, node.Width - 4, node.Height - 20 - 2, borderRadius - 1, borderRadius - 1, borderRadius - 1,
+                borderRadius - 1, PrimitiveType.TriangleFan);
 
             GL.Enable(EnableCap.Texture2D);
             GL.Color3(Color.White);
@@ -665,7 +686,7 @@ namespace Sandbox
             Zoom = zoom;
 
             if (Zoom > 1)
-                Zoom = (float) Math.Round(Zoom);
+                Zoom = (float)Math.Round(Zoom);
 
             if (Zoom > 5)
                 Zoom = 5;
@@ -674,7 +695,7 @@ namespace Sandbox
 
             var size = new Vector2(Width, Height);
             _grid.Offset -= (size / zoomBefore - size / Zoom) / 2;
-            _grid.Offset = new Vector2((int) _grid.Offset.X, (int) _grid.Offset.Y);
+            _grid.Offset = new Vector2((int)_grid.Offset.X, (int)_grid.Offset.Y);
         }
 
         private void Update(object sender, FrameEventArgs e)
@@ -686,6 +707,12 @@ namespace Sandbox
                 Exit();
 
             MarchingAnts.Update();
+
+            if (_selectionHandler.SelectionRectangle != null)
+            {
+                _selectionHandler.Select(Graph, IsControlPressed() ? SelectionMode.Additive : SelectionMode.Normal);
+                return;
+            }
         }
     }
 }
