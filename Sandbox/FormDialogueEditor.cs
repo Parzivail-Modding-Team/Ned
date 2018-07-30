@@ -1,14 +1,6 @@
-﻿using Ned;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
 using System.Windows.Forms;
-using OpenTK;
+using Ned;
 using PFX;
 
 namespace Sandbox
@@ -16,10 +8,16 @@ namespace Sandbox
     public partial class FormDialogueEditor : Form
     {
         private readonly MainWindow _nodeEditor;
+        private string _fileName;
 
         private Graph _graph;
         private Node _selectedNode;
-        private string _fileName;
+
+        public FormDialogueEditor(MainWindow nodeEditor)
+        {
+            _nodeEditor = nodeEditor;
+            InitializeComponent();
+        }
 
         public string FileName
         {
@@ -30,12 +28,6 @@ namespace Sandbox
                 _fileName = value;
                 Text = string.Format(Resources.AppTitleWorking, value);
             }
-        }
-
-        public FormDialogueEditor(MainWindow nodeEditor)
-        {
-            _nodeEditor = nodeEditor;
-            InitializeComponent();
         }
 
         private void FormDialogEditor_Load(object sender, EventArgs e)
@@ -95,7 +87,7 @@ namespace Sandbox
         {
             if (_selectedNode == null || _selectedNode.Actor != Actor.Player) return;
 
-            _selectedNode.RemoveOutput((Connection)lDialogOptions.SelectedObject);
+            _selectedNode.RemoveOutput((Connection) lDialogOptions.SelectedObject);
             _selectedNode.BuildConnections();
             lDialogOptions.SetObjects(_selectedNode.Outputs);
         }

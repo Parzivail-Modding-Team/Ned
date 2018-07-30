@@ -6,23 +6,23 @@ using OpenTK;
 
 namespace Sandbox
 {
-    class SelectionHandler
+    internal class SelectionHandler
     {
+        private readonly List<Vector2> _copiedNodeOffsets = new List<Vector2>();
+        private readonly List<Node> _copiedNodes = new List<Node>();
         private readonly MainWindow _window;
+        public readonly List<Node> SelectedNodes = new List<Node>();
 
         public Rectangle SelectionRectangle;
-        public readonly List<Node> SelectedNodes = new List<Node>();
-        private readonly List<Node> _copiedNodes = new List<Node>();
-        private readonly List<Vector2> _copiedNodeOffsets = new List<Vector2>();
-
-        public Node SingleSelectedNode  => SelectedNodes.Count == 1 ? SelectedNodes[0] : null;
-        public bool IsClipboardEmpty => _copiedNodes.Count == 0;
-        public bool OneOrNoneSelected => SelectedNodes.Count <= 1;
 
         public SelectionHandler(MainWindow window)
         {
             _window = window;
         }
+
+        public Node SingleSelectedNode => SelectedNodes.Count == 1 ? SelectedNodes[0] : null;
+        public bool IsClipboardEmpty => _copiedNodes.Count == 0;
+        public bool OneOrNoneSelected => SelectedNodes.Count <= 1;
 
         public void Select(Graph graph, SelectionMode mode)
         {
@@ -102,8 +102,8 @@ namespace Sandbox
 
                 if (snap)
                 {
-                    copiedNode.X = (int)(Math.Floor(copiedNode.X / snapPitch) * snapPitch);
-                    copiedNode.Y = (int)(Math.Floor(copiedNode.Y / snapPitch) * snapPitch);
+                    copiedNode.X = (int) (Math.Floor(copiedNode.X / snapPitch) * snapPitch);
+                    copiedNode.Y = (int) (Math.Floor(copiedNode.Y / snapPitch) * snapPitch);
                 }
 
                 _window.Graph.Add(new Node(copiedNode));
