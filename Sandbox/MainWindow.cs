@@ -53,11 +53,11 @@ namespace Sandbox
             MouseUp += OnMouseUp;
 
             KeyDown += OnKeyDown;
+            KeyPress += OnKeyPress;
 
             //Title = $"{EmbeddedFiles.AppName} | {EmbeddedFiles.Title_Unsaved}";
             //Icon = EmbeddedFiles.logo;
         }
-
         public Graph Graph => DialogEditor.GetGraph();
 
         private void CreateContextMenu(Node context)
@@ -142,6 +142,7 @@ namespace Sandbox
 
             DialogEditor = new FormDialogueEditor(this);
             DialogEditor.Show();
+            DialogEditor.Hide();
 
             CreateContextMenu(null);
 
@@ -194,6 +195,23 @@ namespace Sandbox
             if (!Focused)
                 return;
 
+            if (GuiHandler.TextBox != null)
+            { 
+                if (e.Control && e.Key == Key.Minus)
+                {
+                    if (GuiHandler.TextBox == null) return;
+
+                    var connection = GuiHandler.EditingConnection;
+                    connection.ParentNode.RemoveOutput(connection);
+                    GuiHandler.Destroy(false);
+                    connection.ParentNode.BuildConnections();
+                    return;
+                }
+
+                GuiHandler.TextBox.OnKey(e);
+                return;
+            }
+
             if (e.Key == Key.Delete) _selectionHandler.Delete();
 
             if (e.Control && e.Key == Key.R)
@@ -203,6 +221,16 @@ namespace Sandbox
                     _grid.Offset = Vector2.Zero;
             }
 
+            if (e.Control && e.Key == Key.Plus)
+            {
+                if (_selectionHandler.SingleSelectedNode == null || _selectionHandler.SingleSelectedNode.Actor != Actor.Player) return;
+
+                var c = new Connection(_selectionHandler.SingleSelectedNode, NodeSide.Output, 0, "Dialog Option");
+                _selectionHandler.SingleSelectedNode.Outputs.Add(c);
+                _selectionHandler.SingleSelectedNode.BuildConnections();
+                GuiHandler.StartEditing(this, c);
+            }
+
             if (e.Control && e.Key == Key.C) _selectionHandler.Copy();
 
             if (e.Control && e.Key == Key.X) _selectionHandler.Cut();
@@ -210,6 +238,22 @@ namespace Sandbox
             if (e.Control && e.Key == Key.V)
                 _selectionHandler.Paste(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, !_keyboard[Key.ShiftLeft],
                     _grid.Pitch);
+
+            if (e.Control && e.Key == Key.O) DialogEditor.AskOpenFile();
+
+            if (e.Control && e.Key == Key.S)
+            {
+                if (e.Shift)
+                    DialogEditor.AskSaveFileAs();
+                else
+                    DialogEditor.AskSaveFile();
+            }
+        }
+
+        private void OnKeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (GuiHandler.TextBox == null) return;
+            GuiHandler.TextBox.OnCharacter(e.KeyChar);
         }
 
         private void OnMouseDown(object sender, MouseButtonEventArgs mouseButtonEventArgs)
@@ -240,6 +284,13 @@ namespace Sandbox
 
                         _contextMenu.Visible = false;
                     }
+
+                    var clickedTextBox = GuiHandler.Pick(this, Graph, x, y);
+
+                    if (clickedTextBox != null)
+                        return;
+                    else
+                        GuiHandler.Destroy();
 
                     var clickedConnection = Graph.PickConnection(x, y, _draggingConnectionPredicate);
 
@@ -366,12 +417,12 @@ namespace Sandbox
                      ClearBufferMask.StencilBufferBit);
 
             GL.PushMatrix();
-            GL.Scale(Zoom, Zoom, 0.01f);
+            GL.Scale(Zoom, Zoom, 2);
 
             GL.Disable(EnableCap.Texture2D);
 
             GL.PushMatrix();
-            GL.Translate(0, 0, -50);
+            GL.Translate(0, 0, -10);
 
             GL.Color3(Color.Gray);
             GL.PointSize(1);
@@ -495,7 +546,7 @@ namespace Sandbox
         private void RenderConnections(Node node)
         {
             GL.PushMatrix();
-            GL.Translate(0, 0, -10);
+            GL.Translate(0, 0, -1);
             GL.Color3(Color.Gray);
 
             foreach (var connection in node.Outputs)
@@ -519,21 +570,30 @@ namespace Sandbox
             GL.Enable(EnableCap.Texture2D);
 
             GL.PushMatrix();
-            switch (connection.Side)
+            if (connection != GuiHandler.EditingConnection)
             {
-                case NodeSide.Input:
-                    GL.Translate(bound.X + twor, bound.Y - r, 0.01);
-                    RenderString(connection.Text);
-                    break;
-                case NodeSide.Output:
-                    var s = connection.Text;
-                    GL.Translate(bound.X - twor - Font.MeasureString(s).Width, bound.Y - r, 0.01);
-                    RenderString(s);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
+                switch (connection.Side)
+                {
+                    case NodeSide.Input:
+                        GL.Translate(bound.X + twor, bound.Y - r, 0.01);
+                        RenderString(connection.Text);
+                        break;
+                    case NodeSide.Output:
+                        var s = connection.Text;
+                        GL.Translate(bound.X - twor - Font.MeasureString(s).Width, bound.Y - r, 0.01);
+                        RenderString(s);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
             }
-
+            else
+            {
+                GL.Translate(0, 0, 0.01);
+                GuiHandler.TextBox.RenderBackground();
+                GL.Translate(0, 0, 0.01);
+                GuiHandler.TextBox.RenderForeground();
+            }
             GL.PopMatrix();
 
             GL.Disable(EnableCap.Texture2D);

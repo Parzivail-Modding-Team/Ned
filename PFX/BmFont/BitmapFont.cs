@@ -99,7 +99,7 @@ namespace PFX.BmFont
 
                 var fontChar = Characters.Any(fC => fC.Id == c) ? Characters.First(fC => fC.Id == c) : MissingCharacter;
 
-                var nx = cursor.X + fontChar.OffsetX + (c == ' ' ? fontChar.AdvanceX : fontChar.Width);
+                var nx = cursor.X + fontChar.OffsetX + (c == ' ' ? 2 * fontChar.AdvanceX : fontChar.Width);
                 var ny = cursor.Y + fontChar.OffsetY + fontChar.Height;
 
                 cursor.X += fontChar.AdvanceX;

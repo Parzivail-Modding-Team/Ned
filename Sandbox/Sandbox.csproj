@@ -74,6 +74,7 @@
       <DependentUpon>FormDialogueEditor.cs</DependentUpon>
     </Compile>
     <Compile Include="Grid.cs" />
+    <Compile Include="GuiHandler.cs" />
     <Compile Include="MainWindow.cs" />
     <Compile Include="MarchingAnts.cs" />
     <Compile Include="Program.cs" />
@@ -85,6 +86,7 @@
     </Compile>
     <Compile Include="SelectionHandler.cs" />
     <Compile Include="SelectionMode.cs" />
+    <Compile Include="TextBox.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

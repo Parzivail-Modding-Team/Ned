@@ -11,7 +11,6 @@ namespace Sandbox
         private string _fileName;
 
         private Graph _graph;
-        private Node _selectedNode;
 
         public FormDialogueEditor(MainWindow nodeEditor)
         {
@@ -34,8 +33,6 @@ namespace Sandbox
         {
             Text = Resources.AppTitleStatic;
 
-            ChangeSelectionTo(null);
-
             _graph = new Graph
             {
                 new Node(NodeType.Start, "Start", 50, 50),
@@ -54,45 +51,12 @@ namespace Sandbox
             return _graph;
         }
 
-        public void ChangeSelectionTo(Node node)
-        {
-            _selectedNode = node;
-
-            if (node == null || node.Type != NodeType.Flow)
-            {
-                lDialogOptions.SetObjects(null);
-                lDialogOptions.Enabled = false;
-                bAddDialogOption.Enabled = false;
-                bRemoveDialogOption.Enabled = false;
-            }
-            else
-            {
-                lDialogOptions.SetObjects(node.Outputs);
-                lDialogOptions.Enabled = true;
-                bAddDialogOption.Enabled = true;
-                bRemoveDialogOption.Enabled = true;
-            }
-        }
-
-        private void bAddDialogOption_Click(object sender, EventArgs e)
-        {
-            if (_selectedNode == null || _selectedNode.Actor != Actor.Player) return;
-
-            _selectedNode.Outputs.Add(new Connection(_selectedNode, NodeSide.Output, 0, "Dialog Option"));
-            _selectedNode.BuildConnections();
-            lDialogOptions.SetObjects(_selectedNode.Outputs);
-        }
-
-        private void bRemoveDialogOption_Click(object sender, EventArgs e)
-        {
-            if (_selectedNode == null || _selectedNode.Actor != Actor.Player) return;
-
-            _selectedNode.RemoveOutput((Connection) lDialogOptions.SelectedObject);
-            _selectedNode.BuildConnections();
-            lDialogOptions.SetObjects(_selectedNode.Outputs);
-        }
-
         private void bOpen_Click(object sender, EventArgs e)
+        {
+            AskOpenFile();
+        }
+
+        public void AskOpenFile()
         {
             if (ofd.ShowDialog() != DialogResult.OK)
                 return;
@@ -105,9 +69,14 @@ namespace Sandbox
 
         private void bSave_Click(object sender, EventArgs e)
         {
+            AskSaveFile();
+        }
+
+        public void AskSaveFile()
+        {
             if (FileName == null)
             {
-                bSaveAs_Click(sender, e);
+                AskSaveFileAs();
                 return;
             }
 
@@ -117,6 +86,11 @@ namespace Sandbox
         }
 
         private void bSaveAs_Click(object sender, EventArgs e)
+        {
+            AskSaveFileAs();
+        }
+
+        public void AskSaveFileAs()
         {
             if (sfd.ShowDialog() != DialogResult.OK)
                 return;

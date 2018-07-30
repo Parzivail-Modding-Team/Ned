@@ -26,8 +26,6 @@ namespace Sandbox
 
         public void Select(Graph graph, SelectionMode mode)
         {
-            _window.DialogEditor.ChangeSelectionTo(null);
-
             switch (mode)
             {
                 case SelectionMode.Normal:
@@ -49,7 +47,6 @@ namespace Sandbox
         {
             SelectedNodes.Clear();
             SelectedNodes.Add(node);
-            _window.DialogEditor.ChangeSelectionTo(node);
         }
 
         public void Delete()
