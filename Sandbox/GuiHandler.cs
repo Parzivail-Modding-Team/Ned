@@ -56,6 +56,9 @@ namespace Sandbox
             var twor = 2 * r;
             var outputRect = new Rectangle(bound.X - twor - s.Width - 3, bound.Y - r - 3, s.Width + 6, s.Height + 6);
 
+            if (TextBox != null)
+                Destroy();
+
             EditingConnection = output;
             TextBox = new TextBox(window, outputRect)
             {

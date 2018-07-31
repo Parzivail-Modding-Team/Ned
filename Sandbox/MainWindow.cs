@@ -284,11 +284,14 @@ namespace Sandbox
 
                         _contextMenu.Visible = false;
                     }
-
+                    
                     var clickedTextBox = GuiHandler.Pick(this, Graph, x, y);
 
                     if (clickedTextBox != null)
+                    {
+                        clickedTextBox.OnMouseDown(mouseButtonEventArgs);
                         return;
+                    }
                     else
                         GuiHandler.Destroy();
 
@@ -335,6 +338,12 @@ namespace Sandbox
             MouseScreenSpace = new Vector2(mouseMoveEventArgs.X, mouseMoveEventArgs.Y);
             _mouseCanvasSpace = ScreenToCanvasSpace(MouseScreenSpace);
 
+            if (GuiHandler.TextBox != null)
+            {
+                GuiHandler.TextBox.OnMouseMove(mouseMoveEventArgs);
+                return;
+            }
+
             if (_draggingBackground)
             {
                 _grid.Offset += new Vector2(mouseMoveEventArgs.XDelta, mouseMoveEventArgs.YDelta) / Zoom;
@@ -372,6 +381,12 @@ namespace Sandbox
                     _draggingBackground = false;
                     break;
                 case MouseButton.Left:
+                    if (GuiHandler.TextBox != null)
+                    {
+                        GuiHandler.TextBox.OnMouseUp(mouseButtonEventArgs);
+                        return;
+                    }
+
                     if (_draggingConnection != null)
                     {
                         var picked = Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y,
@@ -430,7 +445,7 @@ namespace Sandbox
             _grid.Draw();
 
             GL.PopMatrix();
-
+            
             GL.Translate(_grid.Offset.X, _grid.Offset.Y, 0);
             GL.LineWidth(2);
 
@@ -475,7 +490,7 @@ namespace Sandbox
             _contextMenu.Render();
 
             GL.Color4(0, 0, 0, 1f);
-            if (_keyboard[Key.D] && Focused)
+            if (_keyboard[Key.D] && Focused && GuiHandler.TextBox == null)
             {
                 // Static diagnostic header
                 GL.PushMatrix();
@@ -739,16 +754,12 @@ namespace Sandbox
 
         public Vector2 ScreenToCanvasSpace(Vector2 input)
         {
-            var v = input - _grid.Offset * Zoom;
-            var temp = Vector3.TransformVector(new Vector3(v), Matrix4.CreateScale(1f / Zoom));
-            return temp.Xy;
+            return input / Zoom - _grid.Offset;
         }
 
         public Vector2 CanvasToScreenSpace(Vector2 input)
         {
-            var v = input + _grid.Offset / Zoom;
-            var temp = Vector3.TransformVector(new Vector3(-v), Matrix4.CreateScale(Zoom));
-            return temp.Xy;
+            return (input + _grid.Offset) * Zoom;
         }
 
         private void SetZoom(float zoom)

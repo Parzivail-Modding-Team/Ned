@@ -9,7 +9,9 @@ using System.Windows.Forms;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
+using PFX;
 using PFX.Util;
+using MouseEventArgs = OpenTK.Input.MouseEventArgs;
 using Rectangle = Ned.Rectangle;
 
 namespace Sandbox
@@ -18,11 +20,26 @@ namespace Sandbox
     {
         private readonly MainWindow _window;
         private string _text = string.Empty;
+        private bool _dragging;
+        private bool _selecting;
+        private int _selectionStart = -1;
+        private int _selectionEnd = -1;
 
         public Rectangle BoundingBox { get; }
         public int CursorPos { get; set; }
-        public int SelectionStart { get; set; }
-        public int SelectionEnd { get; set; }
+
+        public int SelectionStart
+        {
+            get => Math.Min(_selectionStart, _selectionEnd);
+            set => _selectionStart = value;
+        }
+
+        public int SelectionEnd
+        {
+            get => Math.Max(_selectionStart, _selectionEnd);
+            set => _selectionEnd = value;
+        }
+
         public Color BackgroundColor { get; set; }
         public Color ForegroundColor { get; set; }
 
@@ -42,7 +59,7 @@ namespace Sandbox
             BackgroundColor = Color.Black;
             ForegroundColor = Color.White;
         }
-        
+
         public void RenderBackground()
         {
             GL.PushMatrix();
@@ -60,13 +77,13 @@ namespace Sandbox
                 var shiftLeft = GetTextShift();
 
                 GL.Translate(BoundingBox.X + 4 - shiftLeft,
-                    BoundingBox.Y + (int) ((BoundingBox.Height - _window.Font.Common.LineHeight) / 2f), 0);
+                    BoundingBox.Y + (int)((BoundingBox.Height - _window.Font.Common.LineHeight) / 2f), 0);
                 var size = _window.Font.MeasureString(Text.Substring(0, CursorPos));
 
                 GL.Translate(0, 0, 0.01);
 
                 GL.Color3(ForegroundColor);
-                Fx.D2.DrawSolidRectangle((int) size.Width + 1, 0, 2, _window.Font.Common.LineHeight);
+                Fx.D2.DrawSolidRectangle((int)size.Width + 1, 0, 2, _window.Font.Common.LineHeight);
             }
 
             GL.PopAttrib();
@@ -90,7 +107,7 @@ namespace Sandbox
 
             bottomRight -= topLeft;
 
-            Fx.Util.Scissor(_window, (int) topLeft.X, (int) topLeft.Y, (int) bottomRight.X, (int) bottomRight.Y);
+            Fx.Util.Scissor(_window, (int)topLeft.X, (int)topLeft.Y, (int)bottomRight.X, (int)bottomRight.Y);
             GL.Translate(BoundingBox.X + 4 - shiftLeft,
                 BoundingBox.Y + (int)((BoundingBox.Height - _window.Font.Common.LineHeight) / 2f), 0.01);
             DrawForegroundText(Text);
@@ -101,14 +118,31 @@ namespace Sandbox
         private void DrawForegroundText(string s)
         {
             GL.Color3(ForegroundColor);
-            _window.Font.RenderString(s);
+
+            if (SelectionStart == -1 || SelectionEnd == -1)
+                _window.Font.RenderString(s);
+            else
+            {
+                var selWidth =
+                    _window.Font.MeasureString(Text.Substring(SelectionStart, SelectionEnd - SelectionStart)).Width;
+
+                GL.Color3(Color.DodgerBlue);
+                GL.Disable(EnableCap.Texture2D);
+                Fx.D2.DrawSolidRectangle(_window.Font.MeasureString(Text.Substring(0, SelectionStart)).Width, 0, selWidth, _window.Font.Common.LineHeight);
+
+                GL.Translate(0, 0, 0.01);
+
+                GL.Color3(ForegroundColor);
+                GL.Enable(EnableCap.Texture2D);
+                _window.Font.RenderString(s);
+            }
         }
 
         private int GetTextShift()
         {
             var textSize = _window.Font.MeasureString(Text.Substring(0, CursorPos));
             var shiftLeft = 0;
-            
+
             var width = BoundingBox.Width - 10;
 
             if (textSize.Width >= width)
@@ -146,6 +180,54 @@ namespace Sandbox
                 default:
                     throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
             }
+        }
+
+        public void OnMouseDown(MouseEventArgs m)
+        {
+            SelectionStart = SelectionEnd = -1;
+
+            var mouseLateral = _window.ScreenToCanvasSpace(new Vector2(m.X, m.Y)).X - BoundingBox.X;
+            CursorPos = GetTextIndex(mouseLateral) - 1;
+
+            _dragging = true;
+        }
+
+        public void OnMouseUp(MouseEventArgs m)
+        {
+            _dragging = false;
+            _selecting = false;
+        }
+
+        public void OnMouseMove(MouseMoveEventArgs m)
+        {
+//            if (_dragging && !_selecting)
+//            {
+//                _selecting = true;
+//                SelectionStart = CursorPos;
+//            }
+
+            if (_selecting)
+            {
+                var mouseLateral = _window.ScreenToCanvasSpace(new Vector2(m.X, m.Y)).X - BoundingBox.X;
+                var selectionEndIdx = GetTextIndex(mouseLateral) - 1;
+
+                SelectionEnd = selectionEndIdx;
+
+                CursorPos = selectionEndIdx;
+            }
+        }
+
+        private int GetTextIndex(float mouseLateral)
+        {
+            for (var i = 1; i < Text.Length; i++)
+            {
+                var substr = Text.Substring(0, i);
+                var textLateral = _window.Font.MeasureString(substr).Width - GetTextShift();
+                if (!(textLateral > mouseLateral)) continue;
+                return i;
+            }
+
+            return Text.Length;
         }
 
         public void OnKey(KeyboardKeyEventArgs k)
