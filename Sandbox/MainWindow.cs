@@ -38,6 +38,8 @@ namespace Sandbox
         public Vector2 MouseScreenSpace = Vector2.Zero;
         public float Zoom = 1;
 
+        public Graph Graph => DialogEditor.GetGraph();
+
         public MainWindow() : base(800, 600)
         {
             // Wire up window
@@ -58,11 +60,11 @@ namespace Sandbox
             //Title = $"{EmbeddedFiles.AppName} | {EmbeddedFiles.Title_Unsaved}";
             //Icon = EmbeddedFiles.logo;
         }
-        public Graph Graph => DialogEditor.GetGraph();
 
-        private void CreateContextMenu(Node context)
+        private void CreateContextMenu(Node context, float x, float y)
         {
-            _contextMenu = new ContextMenu(MouseScreenSpace.X + 1, MouseScreenSpace.Y + 1, 100);
+            _contextMenu = new ContextMenu(MouseScreenSpace.X + 1, MouseScreenSpace.Y + 1, 250);
+
             if (context == null)
             {
                 _contextMenu.Add(new ContextMenuItem(this, "Add NPC", item =>
@@ -93,9 +95,15 @@ namespace Sandbox
                 if (_selectionHandler.OneOrNoneSelected)
                     _selectionHandler.Select(context);
 
-                _contextMenu.Add(new ContextMenuItem(this, "DEL", "Delete", item => _selectionHandler.Delete()));
+                _contextMenu.Add(new ContextMenuItem(this, "DEL", "Delete Node", item => _selectionHandler.Delete()));
                 _contextMenu.Add(new ContextMenuItem(this, "CTRL+X", "Cut", item => _selectionHandler.Cut()));
                 _contextMenu.Add(new ContextMenuItem(this, "CTRL+C", "Copy", item => _selectionHandler.Copy()));
+                _contextMenu.Add(new ContextMenuItem(this, "CTRL+Plus", "Add Connection", item => AddOutput(context)));
+
+                var subContext = PickConnectionWithText(x, y);
+                if (subContext != null)
+                    _contextMenu.Add(new ContextMenuItem(this, "CTRL+Minus", "Delete Connection",
+                        item => context.RemoveOutput(subContext)));
             }
         }
 
@@ -144,7 +152,7 @@ namespace Sandbox
             DialogEditor.Show();
             DialogEditor.Hide();
 
-            CreateContextMenu(null);
+            CreateContextMenu(null, 0, 0);
 
             _draggingConnectionPredicate = connection =>
                 _draggingConnection == null || _draggingConnection.ParentNode != connection.ParentNode &&
@@ -155,7 +163,7 @@ namespace Sandbox
 
         private int GetNodeWidth(Node node)
         {
-            var width = 90;
+            var width = 120;
 
             width = (int) Math.Max(Font.MeasureString(node.Name).Width + 40, width);
 
@@ -223,12 +231,9 @@ namespace Sandbox
 
             if (e.Control && e.Key == Key.Plus)
             {
-                if (_selectionHandler.SingleSelectedNode == null || _selectionHandler.SingleSelectedNode.Actor != Actor.Player) return;
+                if (_selectionHandler.SingleSelectedNode == null || _selectionHandler.SingleSelectedNode.Type != NodeType.Flow) return;
 
-                var c = new Connection(_selectionHandler.SingleSelectedNode, NodeSide.Output, 0, "Dialog Option");
-                _selectionHandler.SingleSelectedNode.Outputs.Add(c);
-                _selectionHandler.SingleSelectedNode.BuildConnections();
-                GuiHandler.StartEditing(this, c);
+                AddOutput(_selectionHandler.SingleSelectedNode);
             }
 
             if (e.Control && e.Key == Key.C) _selectionHandler.Copy();
@@ -250,6 +255,14 @@ namespace Sandbox
             }
         }
 
+        private void AddOutput(Node node)
+        {
+            var c = new Connection(node, NodeSide.Output, 0, "Dialog Option");
+            node.Outputs.Add(c);
+            node.BuildConnections();
+            GuiHandler.StartEditing(this, c);
+        }
+
         private void OnKeyPress(object sender, KeyPressEventArgs e)
         {
             if (GuiHandler.TextBox == null) return;
@@ -261,7 +274,7 @@ namespace Sandbox
             switch (mouseButtonEventArgs.Button)
             {
                 case MouseButton.Right:
-                    CreateContextMenu(Graph.PickNode(_mouseCanvasSpace.X, _mouseCanvasSpace.Y));
+                    CreateContextMenu(Graph.PickNode(_mouseCanvasSpace.X, _mouseCanvasSpace.Y), _mouseCanvasSpace.X, _mouseCanvasSpace.Y);
                     _contextMenu.Visible = true;
                     break;
                 case MouseButton.Middle:
@@ -285,7 +298,7 @@ namespace Sandbox
                         _contextMenu.Visible = false;
                     }
                     
-                    var clickedTextBox = GuiHandler.Pick(this, Graph, x, y);
+                    var clickedTextBox = GuiHandler.PickAndCreate(this, Graph, x, y);
 
                     if (clickedTextBox != null)
                     {
@@ -541,6 +554,27 @@ namespace Sandbox
                 screenBotRight.X - screenTopLeft.X, screenBotRight.Y - screenTopLeft.Y);
 
             return nodeRect.Intersects(screen) || nodeRectOthers.Any(node1 => node1.Intersects(screen));
+        }
+
+        public Connection PickConnectionWithText(float x, float y)
+        {
+            var pickedNode = Graph.PickNode(x, y);
+
+            if (pickedNode == null) return null;
+
+            foreach (var output in pickedNode.Outputs)
+            {
+                var s = Font.MeasureString(output.Text);
+                var bound = output.GetBounds();
+                var r = bound.Radius;
+                var twor = 2 * r;
+
+                var outputRect = new Rectangle(bound.X - twor - s.Width, bound.Y - r, s.Width, s.Height);
+                if (!outputRect.Pick(x, y)) continue;
+
+                return output;
+            }
+            return null;
         }
 
         private void RenderConnection(Connection connection, Connection end)

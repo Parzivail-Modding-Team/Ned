@@ -144,6 +144,7 @@ namespace Ned
         {
             Outputs.Remove(connection);
             RecalculateWidth();
+            BuildConnections();
         }
 
         public void BuildConnections()

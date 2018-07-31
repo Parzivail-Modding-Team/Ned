@@ -23,7 +23,7 @@ namespace Sandbox
             TextBox = null;
         }
 
-        public static TextBox Pick(MainWindow window, Graph graph, float x, float y)
+        public static TextBox PickAndCreate(MainWindow window, Graph graph, float x, float y)
         {
             var pickedNode = graph.PickNode(x, y);
 
