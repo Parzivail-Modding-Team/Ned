@@ -102,9 +102,11 @@ namespace Sandbox
 
                 var subContext = PickConnectionWithText(x, y);
                 if (subContext != null)
-                    _contextMenu.Add(new ContextMenuItem(this, "CTRL+Minus", "Delete Connection",
+                    _contextMenu.Add(new ContextMenuItem(this, "CTRL+Minus", $"Delete \"{subContext.Text}\"",
                         item => context.RemoveOutput(subContext)));
             }
+
+            _contextMenu.RecalculateWidth();
         }
 
         private void HandleClose(object sender, CancelEventArgs e)

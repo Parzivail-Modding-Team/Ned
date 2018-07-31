@@ -19,7 +19,7 @@ namespace Sandbox
 
         public float X { get; set; }
         public float Y { get; set; }
-        public int Width { get; }
+        public int Width { get; set; }
         public bool Visible { get; set; }
 
         public void Render()
@@ -41,6 +41,14 @@ namespace Sandbox
             item.Parent = this;
             item.Index = Count;
             base.Add(item);
+        }
+
+        public void RecalculateWidth()
+        {
+            Width = 50;
+
+            foreach (var item in this)
+                Width = (int)Math.Max(Width, item.Width + 10);
         }
     }
 
@@ -68,6 +76,7 @@ namespace Sandbox
         public Action<ContextMenuItem> Action { get; }
         public int Index { get; set; }
         public ContextMenu Parent { get; set; }
+        public float Width => _window.Font.MeasureString($"{Shortcut} {Text}").Width;
 
         public bool Pick(float x, float y)
         {
