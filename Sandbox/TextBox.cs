@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
 using PFX.Util;
@@ -54,7 +55,7 @@ namespace Sandbox
             GL.Color3(BackgroundColor);
             Fx.D2.DrawSolidRectangle(BoundingBox.X, BoundingBox.Y, BoundingBox.Width, BoundingBox.Height);
 
-            if (DateTime.Now.Millisecond <= 500 || 1 == 1)
+            if (DateTime.Now.Millisecond <= 500)
             {
                 var shiftLeft = GetTextShift();
 
@@ -80,7 +81,16 @@ namespace Sandbox
             var shiftLeft = GetTextShift();
 
             GL.Enable(EnableCap.ScissorTest);
-            Fx.Util.Scissor(_window, (int) (BoundingBox.X + 2), (int) (BoundingBox.Y + 2), (int) (BoundingBox.Width - 4), (int) (BoundingBox.Height - 4));
+
+            var topLeft = new Vector2(BoundingBox.X + 2, BoundingBox.Y + 2);
+            var bottomRight = topLeft + new Vector2(BoundingBox.Width - 4, BoundingBox.Height - 4);
+
+            topLeft = _window.CanvasToScreenSpace(topLeft);
+            bottomRight = _window.CanvasToScreenSpace(bottomRight);
+
+            bottomRight -= topLeft;
+
+            Fx.Util.Scissor(_window, (int) topLeft.X, (int) topLeft.Y, (int) bottomRight.X, (int) bottomRight.Y);
             GL.Translate(BoundingBox.X + 4 - shiftLeft,
                 BoundingBox.Y + (int)((BoundingBox.Height - _window.Font.Common.LineHeight) / 2f), 0.01);
             DrawForegroundText(Text);

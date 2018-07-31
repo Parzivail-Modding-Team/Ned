@@ -744,6 +744,13 @@ namespace Sandbox
             return temp.Xy;
         }
 
+        public Vector2 CanvasToScreenSpace(Vector2 input)
+        {
+            var v = input + _grid.Offset / Zoom;
+            var temp = Vector3.TransformVector(new Vector3(-v), Matrix4.CreateScale(Zoom));
+            return temp.Xy;
+        }
+
         private void SetZoom(float zoom)
         {
             var zoomBefore = Zoom;
