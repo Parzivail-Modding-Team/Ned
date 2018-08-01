@@ -40,7 +40,7 @@ namespace Sandbox
                 var twor = 2 * r;
 
                 var outputRect = new Rectangle(bound.X - twor - s.Width, bound.Y - r, s.Width, s.Height);
-                if (!outputRect.Pick(x, y)) continue;
+                if (!outputRect.Pick(x, y) || !output.CanEditName) continue;
 
                 StartEditing(window, output);
                 return TextBox;

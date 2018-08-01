@@ -35,8 +35,8 @@ namespace Sandbox
 
             _graph = new Graph
             {
-                new Node(NodeType.Start, "Start", 50, 50),
-                new Node(NodeType.End, "End", 300, 100)
+                new Node(NodeInfo.Start, 50, 50),
+                new Node(NodeInfo.End, 300, 100)
             };
         }
 

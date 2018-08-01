@@ -51,7 +51,7 @@ namespace Sandbox
 
         public void Delete()
         {
-            var nodes = _window.Graph.Where(node => SelectedNodes.Contains(node) && node.Type == NodeType.Flow)
+            var nodes = _window.Graph.Where(node => SelectedNodes.Contains(node) && node.NodeInfo.CanEditNode)
                 .ToList();
             foreach (var node in nodes)
                 _window.Graph.Remove(node);
@@ -62,7 +62,7 @@ namespace Sandbox
             _copiedNodes.Clear();
             _copiedNodeOffsets.Clear();
 
-            _copiedNodes.AddRange(SelectedNodes.Where(node => node.Type == NodeType.Flow).Select(node =>
+            _copiedNodes.AddRange(SelectedNodes.Where(node => node.NodeInfo.CanEditNode).Select(node =>
             {
                 var n = new Node(node);
                 foreach (var connection in n.Outputs)

@@ -32,7 +32,7 @@ namespace Sandbox
         private Sparkline _renderTimeSparkline;
         private SelectionHandler _selectionHandler;
         private bool _shouldDie;
-        private readonly float[] _zoomLevels = {0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1, 2, 3, 4};
+        private readonly float[] _zoomLevels = { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1, 2, 3, 4 };
         private int _zoomIdx = 5;
 
         public FormDialogueEditor DialogEditor;
@@ -69,18 +69,74 @@ namespace Sandbox
 
             if (context == null)
             {
-                _contextMenu.Add(new ContextMenuItem(this, "Add NPC", item =>
+                _contextMenu.Add(new ContextMenuItem(this, "NPC Dialogue", item =>
                 {
                     var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    var n = new Node(NodeType.Flow, Actor.NPC, v.X, v.Y);
+                    var n = new Node(NodeInfo.NpcDialogue, v.X, v.Y);
                     Graph.Add(n);
                     _selectionHandler.Select(n);
                 }));
 
-                _contextMenu.Add(new ContextMenuItem(this, "Add Player", item =>
+                _contextMenu.Add(new ContextMenuItem(this, "Player Dialogue", item =>
                 {
                     var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    var n = new Node(NodeType.Flow, Actor.Player, v.X, v.Y);
+                    var n = new Node(NodeInfo.PlayerDialogue, v.X, v.Y);
+                    Graph.Add(n);
+                    _selectionHandler.Select(n);
+                }));
+
+                _contextMenu.Add(new ContextMenuItem(this, "Has Flag", item =>
+                {
+                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
+                    var n = new Node(NodeInfo.WaitForFlag, v.X, v.Y);
+                    Graph.Add(n);
+                    _selectionHandler.Select(n);
+                }));
+
+                _contextMenu.Add(new ContextMenuItem(this, "Set Flag", item =>
+                {
+                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
+                    var n = new Node(NodeInfo.SetFlag, v.X, v.Y);
+                    Graph.Add(n);
+                    _selectionHandler.Select(n);
+                }));
+
+                _contextMenu.Add(new ContextMenuItem(this, "Clear Flag", item =>
+                {
+                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
+                    var n = new Node(NodeInfo.ClearFlag, v.X, v.Y);
+                    Graph.Add(n);
+                    _selectionHandler.Select(n);
+                }));
+
+                _contextMenu.Add(new ContextMenuItem(this, "Is Quest Active", item =>
+                {
+                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
+                    var n = new Node(NodeInfo.HasQuest, v.X, v.Y);
+                    Graph.Add(n);
+                    _selectionHandler.Select(n);
+                }));
+
+                _contextMenu.Add(new ContextMenuItem(this, "Start Quest", item =>
+                {
+                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
+                    var n = new Node(NodeInfo.StartQuest, v.X, v.Y);
+                    Graph.Add(n);
+                    _selectionHandler.Select(n);
+                }));
+
+                _contextMenu.Add(new ContextMenuItem(this, "Complete Quest", item =>
+                {
+                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
+                    var n = new Node(NodeInfo.CompleteQuest, v.X, v.Y);
+                    Graph.Add(n);
+                    _selectionHandler.Select(n);
+                }));
+
+                _contextMenu.Add(new ContextMenuItem(this, "Trigger Event", item =>
+                {
+                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
+                    var n = new Node(NodeInfo.TriggerEvent, v.X, v.Y);
                     Graph.Add(n);
                     _selectionHandler.Select(n);
                 }));
@@ -92,7 +148,7 @@ namespace Sandbox
             }
             else
             {
-                if (context.Type != NodeType.Flow) return;
+                if (!context.NodeInfo.CanEditNode) return;
 
                 if (_selectionHandler.OneOrNoneSelected)
                     _selectionHandler.Select(context);
@@ -100,12 +156,17 @@ namespace Sandbox
                 _contextMenu.Add(new ContextMenuItem(this, "DEL", "Delete Node", item => _selectionHandler.Delete()));
                 _contextMenu.Add(new ContextMenuItem(this, "CTRL+X", "Cut", item => _selectionHandler.Cut()));
                 _contextMenu.Add(new ContextMenuItem(this, "CTRL+C", "Copy", item => _selectionHandler.Copy()));
-                _contextMenu.Add(new ContextMenuItem(this, "CTRL+Plus", "Add Connection", item => AddOutput(context)));
 
-                var subContext = PickConnectionWithText(x, y);
-                if (subContext != null)
-                    _contextMenu.Add(new ContextMenuItem(this, "CTRL+Minus", $"Delete \"{subContext.Text}\"",
-                        item => context.RemoveOutput(subContext)));
+                if (context.NodeInfo.CanEditConnectors)
+                {
+                    _contextMenu.Add(new ContextMenuItem(this, "CTRL+Plus", "Add Connection",
+                        item => AddOutput(context)));
+
+                    var subContext = PickConnectionWithText(x, y);
+                    if (subContext != null)
+                        _contextMenu.Add(new ContextMenuItem(this, "CTRL+Minus", $"Delete \"{subContext.Text}\"",
+                            item => context.RemoveOutput(subContext)));
+                }
             }
 
             _contextMenu.RecalculateWidth();
@@ -139,8 +200,8 @@ namespace Sandbox
             Font = BitmapFont.LoadBinaryFont("dina", FontBank.FontDina, FontBank.BmDina);
 
             // Load sparklines
-            _fpsSparkline = new Sparkline(Font, $"0-{(int) TargetRenderFrequency}fps", 50,
-                (float) TargetRenderFrequency, Sparkline.SparklineStyle.Area);
+            _fpsSparkline = new Sparkline(Font, $"0-{(int)TargetRenderFrequency}fps", 50,
+                (float)TargetRenderFrequency, Sparkline.SparklineStyle.Area);
             _renderTimeSparkline = new Sparkline(Font, "0-50ms", 50, 50, Sparkline.SparklineStyle.Area);
 
             // Init keyboard to ensure first frame won't NPE
@@ -169,15 +230,15 @@ namespace Sandbox
         {
             var width = 120;
 
-            width = (int) Math.Max(Font.MeasureString(node.Name).Width + 40, width);
+            width = (int)Math.Max(Font.MeasureString(node.Name).Width + 40, width);
 
             if (node.Input != null)
-                width = (int) Math.Max(Font.MeasureString(node.Input.Text).Width + 40, width);
+                width = (int)Math.Max(Font.MeasureString(node.Input.Text).Width + 40, width);
 
             foreach (var connection in node.Outputs)
-                width = (int) Math.Max(Font.MeasureString(connection.Text).Width + 40, width);
+                width = (int)Math.Max(Font.MeasureString(connection.Text).Width + 40, width);
 
-            width = (int) (Math.Ceiling(width / (float)_grid.Pitch) * _grid.Pitch);
+            width = (int)(Math.Ceiling(width / (float)_grid.Pitch) * _grid.Pitch);
 
             return width;
         }
@@ -210,7 +271,7 @@ namespace Sandbox
                 return;
 
             if (GuiHandler.TextBox != null)
-            { 
+            {
                 if (e.Control && e.Key == Key.Minus)
                 {
                     if (GuiHandler.TextBox == null) return;
@@ -237,7 +298,7 @@ namespace Sandbox
 
             if (e.Control && e.Key == Key.Plus)
             {
-                if (_selectionHandler.SingleSelectedNode == null || _selectionHandler.SingleSelectedNode.Type != NodeType.Flow) return;
+                if (_selectionHandler.SingleSelectedNode == null || _selectionHandler.SingleSelectedNode.NodeInfo.CanEditConnectors) return;
 
                 AddOutput(_selectionHandler.SingleSelectedNode);
             }
@@ -303,7 +364,7 @@ namespace Sandbox
 
                         _contextMenu.Visible = false;
                     }
-                    
+
                     var clickedTextBox = GuiHandler.PickAndCreate(this, Graph, x, y);
 
                     if (clickedTextBox != null)
@@ -386,8 +447,8 @@ namespace Sandbox
 
                     if (!_keyboard[Key.ShiftLeft])
                     {
-                        node.X = (int) (Math.Floor(node.X / _grid.Pitch) * _grid.Pitch);
-                        node.Y = (int) (Math.Floor(node.Y / _grid.Pitch) * _grid.Pitch);
+                        node.X = (int)(Math.Floor(node.X / _grid.Pitch) * _grid.Pitch);
+                        node.Y = (int)(Math.Floor(node.Y / _grid.Pitch) * _grid.Pitch);
                     }
                 }
         }
@@ -424,7 +485,7 @@ namespace Sandbox
         private void OnMouseWheel(object sender, MouseWheelEventArgs e)
         {
             var z = _zoomIdx;
-            
+
             if (Math.Sign(e.DeltaPrecise) > 0)
                 z++;
             else
@@ -445,9 +506,9 @@ namespace Sandbox
 
             // Update sparklines
             if (_profile.ContainsKey("render"))
-                _renderTimeSparkline.Enqueue((float) _profile["render"].TotalMilliseconds);
+                _renderTimeSparkline.Enqueue((float)_profile["render"].TotalMilliseconds);
 
-            _fpsSparkline.Enqueue((float) RenderFrequency);
+            _fpsSparkline.Enqueue((float)RenderFrequency);
 
             // Reset the view
             GL.Clear(ClearBufferMask.ColorBufferBit |
@@ -468,7 +529,7 @@ namespace Sandbox
             _grid.Draw();
 
             GL.PopMatrix();
-            
+
             GL.Translate(_grid.Offset.X, _grid.Offset.Y, 0);
             GL.LineWidth(2);
 
@@ -518,15 +579,15 @@ namespace Sandbox
             {
                 // Static diagnostic header
                 GL.PushMatrix();
-                Font.RenderString($"FPS: {(int) Math.Round(RenderFrequency)}\n" +
-                                  $"Render Time: {(int) _profile["render"].TotalMilliseconds}ms\n" +
+                Font.RenderString($"FPS: {(int)Math.Round(RenderFrequency)}\n" +
+                                  $"Render Time: {(int)_profile["render"].TotalMilliseconds}ms\n" +
                                   $"Zoom: {Zoom}\n" +
                                   $"Nodes: {Graph.Count}", false);
 
                 // Sparklines
-                GL.Translate(5, (int) (Height - Font.Common.LineHeight * 1.4f * 2), 0);
+                GL.Translate(5, (int)(Height - Font.Common.LineHeight * 1.4f * 2), 0);
                 _fpsSparkline.Render(Color.Blue, Color.LimeGreen);
-                GL.Translate(0, (int) (Font.Common.LineHeight * 1.4f), 0);
+                GL.Translate(0, (int)(Font.Common.LineHeight * 1.4f), 0);
                 _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
                 GL.PopMatrix();
             }
@@ -716,34 +777,30 @@ namespace Sandbox
 
             GL.Translate(0, 0, 0.01);
 
-            switch (node.Type)
-            {
-                case NodeType.End:
-                    GL.Color3(Color.IndianRed);
-                    break;
-                case NodeType.Start:
-                    GL.Color3(Color.LimeGreen);
-                    break;
-                case NodeType.Flow:
-                    switch (node.Actor)
-                    {
-                        case Actor.None:
-                            GL.Color3(Color.Black);
-                            break;
-                        case Actor.NPC:
-                            GL.Color3(Color.MediumPurple);
-                            break;
-                        case Actor.Player:
-                            GL.Color3(Color.LightSkyBlue);
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
-
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            if (node.NodeInfo == NodeInfo.None)
+                GL.Color3(Color.Black);
+            else if (node.NodeInfo == NodeInfo.Start)
+                GL.Color3(Color.LimeGreen);
+            else if (node.NodeInfo == NodeInfo.End)
+                GL.Color3(Color.IndianRed);
+            else if (node.NodeInfo == NodeInfo.NpcDialogue)
+                GL.Color3(Color.MediumPurple);
+            else if (node.NodeInfo == NodeInfo.PlayerDialogue)
+                GL.Color3(Color.LightSkyBlue);
+            else if (node.NodeInfo == NodeInfo.WaitForFlag)
+                GL.Color3(Color.Orange);
+            else if (node.NodeInfo == NodeInfo.SetFlag)
+                GL.Color3(Color.MediumSeaGreen);
+            else if (node.NodeInfo == NodeInfo.ClearFlag)
+                GL.Color3(Color.MediumVioletRed);
+            else if (node.NodeInfo == NodeInfo.HasQuest)
+                GL.Color3(Color.DarkOrange);
+            else if (node.NodeInfo == NodeInfo.StartQuest)
+                GL.Color3(Color.CadetBlue);
+            else if (node.NodeInfo == NodeInfo.CompleteQuest)
+                GL.Color3(Color.DarkOrchid);
+            else if (node.NodeInfo == NodeInfo.TriggerEvent)
+                GL.Color3(Color.DarkKhaki);
 
             Fx.D2.DrawSolidRoundRectangle(node.X, node.Y, node.Width, node.Height, borderRadius, borderRadius,
                 borderRadius, borderRadius);
@@ -808,7 +865,7 @@ namespace Sandbox
 
             var size = new Vector2(Width, Height);
             _grid.Offset -= (size / zoomBefore - size / Zoom) / 2;
-            _grid.Offset = new Vector2((int) _grid.Offset.X, (int) _grid.Offset.Y);
+            _grid.Offset = new Vector2((int)_grid.Offset.X, (int)_grid.Offset.Y);
         }
 
         private void Update(object sender, FrameEventArgs e)

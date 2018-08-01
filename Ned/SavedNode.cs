@@ -15,8 +15,7 @@ namespace Ned
         public float Y;
         public float Layer;
         public string Name;
-        public NodeType Type;
-        public Actor Actor;
+        public string NodeFunction;
     }
 
     internal class SavedConnection

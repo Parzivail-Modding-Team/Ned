@@ -20,18 +20,21 @@ namespace Ned
             }
         }
 
+        public bool CanEditName { get; }
+
         public Node ParentNode { get; set; }
         public Connection ConnectedNode { get; set; }
 
         private Guid? _cachedLoadingConnection;
         private string _text;
 
-        public Connection(Node parentNode, NodeSide side, int connectionIndex, string text)
+        public Connection(Node parentNode, NodeSide side, int connectionIndex, string text, bool canEditName = true)
         {
             ParentNode = parentNode;
             Side = side;
             ConnectionIndex = connectionIndex;
             Text = text;
+            CanEditName = canEditName;
         }
 
         internal Connection(Graph graph, SavedConnection connection)
@@ -53,6 +56,7 @@ namespace Ned
             Text = other.Text;
             ParentNode = parent;
             ConnectedNode = other.ConnectedNode == null ? null : new Connection(parent, other.ConnectedNode);
+            CanEditName = other.CanEditName;
         }
 
         internal void FinishLoading(Graph graph)

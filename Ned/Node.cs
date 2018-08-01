@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -8,7 +9,7 @@ namespace Ned
 {
     public class Node
     {
-        public static Func<Node, int> WidthCalculator = node => node.Type == NodeType.Flow ? 240 : 90;
+        public static Func<Node, int> WidthCalculator = node => 200;
 
         public readonly Guid Id = Guid.NewGuid();
 
@@ -19,18 +20,12 @@ namespace Ned
         public float Y { get; set; }
         public float Layer { get; set; }
         public string Name { get; }
-        public NodeType Type { get; }
-        public Actor Actor { get; }
+        public NodeInfo NodeInfo { get; }
 
         public float Width { get; private set; } = 90;
         public float Height => (Math.Max(Outputs.Count, 1) + 1) * 20 + 20;
 
         private SavedNode _cachedLoadingNode;
-
-        public Node(NodeType type, string name, float x, float y) : this(type, Actor.None, x, y)
-        {
-            Name = name;
-        }
 
         internal Node(SavedNode node)
         {
@@ -40,49 +35,23 @@ namespace Ned
             X = node.X;
             Y = node.Y;
             Name = node.Name;
-            Type = node.Type;
-            Actor = node.Actor;
+            NodeInfo = Ned.NodeInfo.GetByName(node.NodeFunction);
 
             _cachedLoadingNode = node;
 
             RecalculateWidth();
         }
 
-        public Node(NodeType type, Actor actor, float x, float y)
+        public Node(NodeInfo nodeInfo, float x, float y)
         {
             X = x;
             Y = y;
-            Name = actor.ToString();
-            Type = type;
-            Actor = actor;
+            Name = nodeInfo.Name;
+            NodeInfo = nodeInfo;
 
             Outputs = new List<Connection>();
 
-            switch (type)
-            {
-                case NodeType.End:
-                    Input = new Connection(this, NodeSide.Input, 0, "");
-                    break;
-                case NodeType.Start:
-                    AddOutput("");
-                    break;
-                default:
-                    Input = new Connection(this, NodeSide.Input, 0, "");
-
-                    switch (Actor)
-                    {
-                        case Actor.NPC:
-                            AddOutput("NPC Dialogue");
-                            break;
-                        case Actor.Player:
-                            AddOutput("Dialogue Option 1");
-                            AddOutput("Dialogue Option 2");
-                            AddOutput("Dialogue Option 3");
-                            break;
-                    }
-
-                    break;
-            }
+            NodeInfo.AddConnections.Invoke(this);
 
             RecalculateWidth();
         }
@@ -93,8 +62,7 @@ namespace Ned
             Y = other.Y;
             Layer = other.Layer;
             Name = other.Name;
-            Type = other.Type;
-            Actor = other.Actor;
+            NodeInfo = other.NodeInfo;
             Input = other.Input == null ? null : new Connection(this, other.Input);
             Outputs = other.Outputs.Select(connection => new Connection(this, connection)).ToList();
             RecalculateWidth();
@@ -119,8 +87,9 @@ namespace Ned
                 connection.FinishLoading(graph);
         }
 
-        private void AddOutput(string text)
+        internal void AddOutput(string text)
         {
+            if (!NodeInfo.CanEditConnectors) return;
             Outputs.Add(new Connection(this, NodeSide.Output, Outputs.Count, text));
             RecalculateWidth();
         }
@@ -142,6 +111,7 @@ namespace Ned
 
         public void RemoveOutput(Connection connection)
         {
+            if (!NodeInfo.CanEditConnectors) return;
             Outputs.Remove(connection);
             RecalculateWidth();
             BuildConnections();
@@ -157,11 +127,10 @@ namespace Ned
         {
             return new SavedNode
             {
-                Actor = Actor,
+                NodeFunction = NodeInfo.Name,
                 Id = Id,
                 Input = Input?.Save(),
                 Outputs = Outputs.Select(connection => connection.Save()).ToList(),
-                Type = Type,
                 X = X,
                 Y = Y,
                 Layer = Layer,
