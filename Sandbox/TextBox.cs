@@ -147,7 +147,7 @@ namespace Sandbox
 
             if (textSize.Width >= width)
                 shiftLeft = (int)(textSize.Width - width);
-            return shiftLeft;
+            return shiftLeft + 1;
         }
 
         public void OnCharacter(char c)
@@ -200,11 +200,11 @@ namespace Sandbox
 
         public void OnMouseMove(MouseMoveEventArgs m)
         {
-//            if (_dragging && !_selecting)
-//            {
-//                _selecting = true;
-//                SelectionStart = CursorPos;
-//            }
+            //            if (_dragging && !_selecting)
+            //            {
+            //                _selecting = true;
+            //                SelectionStart = CursorPos;
+            //            }
 
             if (_selecting)
             {

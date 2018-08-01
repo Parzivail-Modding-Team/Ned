@@ -79,15 +79,6 @@ namespace Sandbox {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Ned - {0}.
-        /// </summary>
-        internal static string FormDialogueEditor_FileName_Ned____0_ {
-            get {
-                return ResourceManager.GetString("FormDialogueEditor_FileName_Ned____0_", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap IconAdd {
@@ -104,6 +95,15 @@ namespace Sandbox {
             get {
                 object obj = ResourceManager.GetObject("IconDelete", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 0.0.2.
+        /// </summary>
+        internal static string Version {
+            get {
+                return ResourceManager.GetString("Version", resourceCulture);
             }
         }
     }

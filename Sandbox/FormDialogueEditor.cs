@@ -65,6 +65,7 @@ namespace Sandbox
             Lumberjack.Info($"Opening {FileName}...");
             _graph = Graph.Load(ofd.FileName);
             Lumberjack.Info($"Opened {FileName}.");
+            _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, ofd.FileName)}  (beta-{Resources.Version})";
         }
 
         private void bSave_Click(object sender, EventArgs e)
@@ -83,6 +84,7 @@ namespace Sandbox
             Lumberjack.Info($"Saving {FileName}...");
             _graph.SaveAs(FileName);
             Lumberjack.Info($"Saved {FileName}.");
+            _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, sfd.FileName)}  (beta-{Resources.Version})";
         }
 
         private void bSaveAs_Click(object sender, EventArgs e)
@@ -99,6 +101,7 @@ namespace Sandbox
             Lumberjack.Info($"Saving {FileName}...");
             _graph.SaveAs(sfd.FileName);
             Lumberjack.Info($"Saved {FileName}.");
+            _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, sfd.FileName)}  (beta-{Resources.Version})";
         }
     }
 }

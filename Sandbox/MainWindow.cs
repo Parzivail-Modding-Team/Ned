@@ -32,11 +32,13 @@ namespace Sandbox
         private Sparkline _renderTimeSparkline;
         private SelectionHandler _selectionHandler;
         private bool _shouldDie;
+        private readonly float[] _zoomLevels = {0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1, 2, 3, 4};
+        private int _zoomIdx = 5;
 
         public FormDialogueEditor DialogEditor;
         public BitmapFont Font;
         public Vector2 MouseScreenSpace = Vector2.Zero;
-        public float Zoom = 1;
+        public float Zoom => _zoomLevels[_zoomIdx];
 
         public Graph Graph => DialogEditor.GetGraph();
 
@@ -57,7 +59,7 @@ namespace Sandbox
             KeyDown += OnKeyDown;
             KeyPress += OnKeyPress;
 
-            //Title = $"{EmbeddedFiles.AppName} | {EmbeddedFiles.Title_Unsaved}";
+            Title = $"{string.Format(Resources.AppTitleWorking, "Untitled")}  (beta-{Resources.Version})";
             //Icon = EmbeddedFiles.logo;
         }
 
@@ -174,6 +176,8 @@ namespace Sandbox
 
             foreach (var connection in node.Outputs)
                 width = (int) Math.Max(Font.MeasureString(connection.Text).Width + 40, width);
+
+            width = (int) (Math.Ceiling(width / (float)_grid.Pitch) * _grid.Pitch);
 
             return width;
         }
@@ -419,13 +423,17 @@ namespace Sandbox
 
         private void OnMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            var z = Zoom;
-
-            var v = _keyboard[Key.ShiftLeft] ? 1.5f : 2f;
+            var z = _zoomIdx;
+            
             if (Math.Sign(e.DeltaPrecise) > 0)
-                z *= v;
+                z++;
             else
-                z /= v;
+                z--;
+
+            if (z < 0)
+                z = 0;
+            else if (z >= _zoomLevels.Length)
+                z = _zoomLevels.Length - 1;
 
             SetZoom(z);
         }
@@ -487,6 +495,7 @@ namespace Sandbox
 
                 GL.Color3(Color.Gray);
                 RenderConnection(_draggingConnection, end);
+                Fx.D2.DrawSolidCircle(end.X, end.Y, 3);
             }
 
             foreach (var node in Graph)
@@ -519,15 +528,6 @@ namespace Sandbox
                 _fpsSparkline.Render(Color.Blue, Color.LimeGreen);
                 GL.Translate(0, (int) (Font.Common.LineHeight * 1.4f), 0);
                 _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
-                GL.PopMatrix();
-            }
-            else
-            {
-                // Info footer
-                GL.PushMatrix();
-                Font.RenderString($"Ned - Development Build");
-                GL.Translate(0, Height - Font.Common.LineHeight, 0);
-                Font.RenderString("PRESS 'D' FOR DIAGNOSTICS");
                 GL.PopMatrix();
             }
 
@@ -772,6 +772,9 @@ namespace Sandbox
 
         private void RenderString(string s)
         {
+            if (string.IsNullOrWhiteSpace(s))
+                return;
+
             if (Zoom >= 0.5)
             {
                 Font.RenderString(s);
@@ -781,8 +784,8 @@ namespace Sandbox
                 GL.PushAttrib(AttribMask.EnableBit);
                 GL.Disable(EnableCap.Texture2D);
                 var size = Font.MeasureString(s);
-                var halfHeight = size.Height / 2;
-                Fx.D2.DrawSolidRoundRectangle(0, 0, size.Width, size.Height, halfHeight, halfHeight, halfHeight,
+                var halfHeight = Font.Common.LineHeight / 2;
+                Fx.D2.DrawSolidRoundRectangle(0, 0, size.Width, Font.Common.LineHeight, halfHeight, halfHeight, halfHeight,
                     halfHeight);
                 GL.PopAttrib();
             }
@@ -798,18 +801,10 @@ namespace Sandbox
             return (input + _grid.Offset) * Zoom;
         }
 
-        private void SetZoom(float zoom)
+        private void SetZoom(int zoomIdx)
         {
             var zoomBefore = Zoom;
-            Zoom = zoom;
-
-            if (Zoom > 1)
-                Zoom = (float) Math.Round(Zoom);
-
-            if (Zoom > 5)
-                Zoom = 5;
-            else if (Zoom < 0.1)
-                Zoom = 0.1f;
+            _zoomIdx = zoomIdx;
 
             var size = new Vector2(Width, Height);
             _grid.Offset -= (size / zoomBefore - size / Zoom) / 2;
