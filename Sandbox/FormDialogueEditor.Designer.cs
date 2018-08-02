@@ -35,6 +35,7 @@
             this.bSaveAs = new System.Windows.Forms.ToolStripMenuItem();
             this.ofd = new System.Windows.Forms.OpenFileDialog();
             this.sfd = new System.Windows.Forms.SaveFileDialog();
+            this.efd = new System.Windows.Forms.SaveFileDialog();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -89,6 +90,11 @@
             this.sfd.Filter = "Ned Project|*.ned";
             this.sfd.Title = "Save";
             // 
+            // efd
+            // 
+            this.efd.Filter = "Compiled Ned Digram|*.nedx";
+            this.efd.Title = "Save";
+            // 
             // FormDialogueEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -115,5 +121,6 @@
         private System.Windows.Forms.ToolStripMenuItem bSaveAs;
         private System.Windows.Forms.OpenFileDialog ofd;
         private System.Windows.Forms.SaveFileDialog sfd;
+        private System.Windows.Forms.SaveFileDialog efd;
     }
 }

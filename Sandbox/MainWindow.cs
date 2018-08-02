@@ -320,6 +320,11 @@ namespace Sandbox
                 else
                     DialogEditor.AskSaveFile();
             }
+
+            if (e.Control && e.Key == Key.E)
+            {
+                    DialogEditor.AskExportFile();
+            }
         }
 
         private void AddOutput(Node node)

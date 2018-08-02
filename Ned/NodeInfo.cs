@@ -11,26 +11,27 @@ namespace Ned
     public class NodeInfo
     {
         public string Name { get; }
+        public int Type { get; }
         public Action<Node> AddConnections { get; }
         public bool CanEditConnectors { get; }
         public bool CanEditNode { get; }
 
-        public static readonly NodeInfo None = new NodeInfo("None", false, false, node => { });
-        public static readonly NodeInfo Start = new NodeInfo("Interact", false, false, node =>
+        public static readonly NodeInfo None = new NodeInfo(-1, "None", false, false, node => { });
+        public static readonly NodeInfo Start = new NodeInfo(0, "Interact", false, false, node =>
         {
             node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "", false));
         });
-        public static readonly NodeInfo End = new NodeInfo("Exit", false, false, node =>
+        public static readonly NodeInfo End = new NodeInfo(1, "Exit", false, false, node =>
         {
             node.Input = new Connection(node, NodeSide.Input, 0, "");
         });
-        public static readonly NodeInfo NpcDialogue = new NodeInfo("NPC", true, true, node =>
+        public static readonly NodeInfo NpcDialogue = new NodeInfo(2, "NPC", true, true, node =>
         {
             node.Input = new Connection(node, NodeSide.Input, 0, "");
             node.AddOutput("NPC Dialogue");
 
         });
-        public static readonly NodeInfo PlayerDialogue = new NodeInfo("Player", true, true, node =>
+        public static readonly NodeInfo PlayerDialogue = new NodeInfo(3, "Player", true, true, node =>
         {
             node.Input = new Connection(node, NodeSide.Input, 0, "");
             node.AddOutput("Dialogue Option 1");
@@ -38,46 +39,47 @@ namespace Ned
             node.AddOutput("Dialogue Option 3");
 
         });
-        public static readonly NodeInfo WaitForFlag = new NodeInfo("Has Flag", false, true, node =>
+        public static readonly NodeInfo WaitForFlag = new NodeInfo(4, "Has Flag", false, true, node =>
         {
             node.Input = new Connection(node, NodeSide.Input, 0, "");
             node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "flagname"));
             node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "[Else]", false));
         });
-        public static readonly NodeInfo SetFlag = new NodeInfo("Set Flag", false, true, node =>
+        public static readonly NodeInfo SetFlag = new NodeInfo(5, "Set Flag", false, true, node =>
         {
             node.Input = new Connection(node, NodeSide.Input, 0, "");
             node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "flagname"));
         });
-        public static readonly NodeInfo ClearFlag = new NodeInfo("Clear Flag", false, true, node =>
+        public static readonly NodeInfo ClearFlag = new NodeInfo(6, "Clear Flag", false, true, node =>
         {
             node.Input = new Connection(node, NodeSide.Input, 0, "");
             node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "flagname"));
         });
-        public static readonly NodeInfo HasQuest = new NodeInfo("Is Quest Active", false, true, node =>
+        public static readonly NodeInfo HasQuest = new NodeInfo(7, "Is Quest Active", false, true, node =>
         {
             node.Input = new Connection(node, NodeSide.Input, 0, "");
             node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "quetsname"));
             node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "[Else]", false));
         });
-        public static readonly NodeInfo StartQuest = new NodeInfo("Start Quest", false, true, node =>
+        public static readonly NodeInfo StartQuest = new NodeInfo(8, "Start Quest", false, true, node =>
         {
             node.Input = new Connection(node, NodeSide.Input, 0, "");
             node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "quetsname"));
         });
-        public static readonly NodeInfo CompleteQuest = new NodeInfo("Complete Quest", false, true, node =>
+        public static readonly NodeInfo CompleteQuest = new NodeInfo(9, "Complete Quest", false, true, node =>
         {
             node.Input = new Connection(node, NodeSide.Input, 0, "");
             node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "questname"));
         });
-        public static readonly NodeInfo TriggerEvent = new NodeInfo("Trigger Event", false, true, node =>
+        public static readonly NodeInfo TriggerEvent = new NodeInfo(10, "Trigger Event", false, true, node =>
         {
             node.Input = new Connection(node, NodeSide.Input, 0, "");
             node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "eventname"));
         });
 
-        private NodeInfo(string name, bool canEditConnectors, bool canEditNode, Action<Node> addConnections)
+        private NodeInfo(int type, string name, bool canEditConnectors, bool canEditNode, Action<Node> addConnections)
         {
+            Type = type;
             Name = name;
             AddConnections = addConnections;
             CanEditConnectors = canEditConnectors;

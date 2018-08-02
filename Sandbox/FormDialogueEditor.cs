@@ -87,6 +87,18 @@ namespace Sandbox
             _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, sfd.FileName)}  (beta-{Resources.Version})";
         }
 
+        public void AskExportFile()
+        {
+            if (efd.ShowDialog() != DialogResult.OK)
+                return;
+            FileName = efd.FileName;
+
+            Lumberjack.Info($"Exporting {FileName}...");
+            NedExporter.Export(_graph, efd.FileName);
+            Lumberjack.Info($"Exporting {FileName}.");
+            _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, efd.FileName)}  (beta-{Resources.Version})";
+        }
+
         private void bSaveAs_Click(object sender, EventArgs e)
         {
             AskSaveFileAs();
