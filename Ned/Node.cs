@@ -35,7 +35,7 @@ namespace Ned
             X = node.X;
             Y = node.Y;
             Name = node.Name;
-            NodeInfo = NodeInfo.GetByName(node.NodeFunction);
+            NodeInfo = NodeInfo.GetByType(node.Type);
 
             _cachedLoadingNode = node;
 
@@ -127,7 +127,7 @@ namespace Ned
         {
             return new SavedNode
             {
-                NodeFunction = NodeInfo.Name,
+                Type = NodeInfo.Type,
                 Id = Id,
                 Input = Input?.Save(),
                 Outputs = Outputs.Select(connection => connection.Save()).ToList(),

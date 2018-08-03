@@ -51,11 +51,6 @@ namespace Sandbox
             return _graph;
         }
 
-        private void bOpen_Click(object sender, EventArgs e)
-        {
-            AskOpenFile();
-        }
-
         public void AskOpenFile()
         {
             if (ofd.ShowDialog() != DialogResult.OK)
@@ -66,11 +61,6 @@ namespace Sandbox
             _graph = Graph.Load(ofd.FileName);
             Lumberjack.Info($"Opened {FileName}.");
             _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, ofd.FileName)}  (beta-{Resources.Version})";
-        }
-
-        private void bSave_Click(object sender, EventArgs e)
-        {
-            AskSaveFile();
         }
 
         public void AskSaveFile()
@@ -87,6 +77,18 @@ namespace Sandbox
             _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, sfd.FileName)}  (beta-{Resources.Version})";
         }
 
+        public void AskSaveFileAs()
+        {
+            if (sfd.ShowDialog() != DialogResult.OK)
+                return;
+            FileName = sfd.FileName;
+
+            Lumberjack.Info($"Saving {FileName}...");
+            _graph.SaveAs(sfd.FileName);
+            Lumberjack.Info($"Saved {FileName}.");
+            _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, sfd.FileName)}  (beta-{Resources.Version})";
+        }
+
         public void AskExportFile()
         {
             if (efd.ShowDialog() != DialogResult.OK)
@@ -99,21 +101,19 @@ namespace Sandbox
             _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, efd.FileName)}  (beta-{Resources.Version})";
         }
 
+        private void bOpen_Click(object sender, EventArgs e)
+        {
+            AskOpenFile();
+        }
+
+        private void bSave_Click(object sender, EventArgs e)
+        {
+            AskSaveFile();
+        }
+
         private void bSaveAs_Click(object sender, EventArgs e)
         {
             AskSaveFileAs();
-        }
-
-        public void AskSaveFileAs()
-        {
-            if (sfd.ShowDialog() != DialogResult.OK)
-                return;
-            FileName = sfd.FileName;
-
-            Lumberjack.Info($"Saving {FileName}...");
-            _graph.SaveAs(sfd.FileName);
-            Lumberjack.Info($"Saved {FileName}.");
-            _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, sfd.FileName)}  (beta-{Resources.Version})";
         }
     }
 }

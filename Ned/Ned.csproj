@@ -51,6 +51,7 @@
     <Compile Include="NodeSide.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Rectangle.cs" />
+    <Compile Include="SavedConnection.cs" />
     <Compile Include="SavedNode.cs" />
   </ItemGroup>
   <ItemGroup>

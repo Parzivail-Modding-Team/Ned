@@ -15,16 +15,6 @@ namespace Ned
         public float Y;
         public float Layer;
         public string Name;
-        public string NodeFunction;
-    }
-
-    internal class SavedConnection
-    {
-        public Guid Id;
-        public NodeSide Side;
-        public int ConnectionIndex;
-        public string Text;
-        public Guid ParentNode;
-        public Guid? ConnectedNode;
+        public int Type;
     }
 }

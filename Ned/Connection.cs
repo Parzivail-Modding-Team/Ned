@@ -43,6 +43,7 @@ namespace Ned
             Side = connection.Side;
             ConnectionIndex = connection.ConnectionIndex;
             Text = connection.Text;
+            CanEditName = connection.CanEditName;
 
             ParentNode = graph.GetNode(connection.ParentNode);
 
@@ -79,12 +80,6 @@ namespace Ned
                 other.ConnectedNode = this;
         }
 
-        public void ReleaseConnection()
-        {
-            if (Side == NodeSide.Output)
-                ConnectedNode = null;
-        }
-
         public Circle GetBounds()
         {
             switch (Side)
@@ -107,7 +102,8 @@ namespace Ned
                 ConnectionIndex = ConnectionIndex,
                 Id = Id,
                 ParentNode = ParentNode.Id,
-                Text = Text
+                Text = Text,
+                CanEditName = CanEditName
             };
         }
 

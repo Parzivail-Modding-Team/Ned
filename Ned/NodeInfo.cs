@@ -10,7 +10,8 @@ namespace Ned
 {
     public class NodeInfo
     {
-        private static readonly Dictionary<string, NodeInfo> _nodeTypes = new Dictionary<string, NodeInfo>();
+        private static readonly Dictionary<int, NodeInfo> NodeTypes = new Dictionary<int, NodeInfo>();
+
         public string Name { get; }
         public int Type { get; }
         public Action<Node> AddConnections { get; }
@@ -59,13 +60,13 @@ namespace Ned
         public static readonly NodeInfo HasQuest = new NodeInfo(7, "Is Quest Active", false, true, node =>
         {
             node.Input = new Connection(node, NodeSide.Input, 0, "");
-            node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "quetsname"));
+            node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "questname"));
             node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "[Else]", false));
         });
         public static readonly NodeInfo StartQuest = new NodeInfo(8, "Start Quest", false, true, node =>
         {
             node.Input = new Connection(node, NodeSide.Input, 0, "");
-            node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "quetsname"));
+            node.Outputs.Add(new Connection(node, NodeSide.Output, node.Outputs.Count, "questname"));
         });
         public static readonly NodeInfo CompleteQuest = new NodeInfo(9, "Complete Quest", false, true, node =>
         {
@@ -85,7 +86,7 @@ namespace Ned
             AddConnections = addConnections;
             CanEditConnectors = canEditConnectors;
             CanEditNode = canEditNode;
-            _nodeTypes.Add(name, this);
+            NodeTypes.Add(type, this);
         }
 
         public override bool Equals(object obj)
@@ -110,9 +111,9 @@ namespace Ned
             return !(function1 == function2);
         }
 
-        public static NodeInfo GetByName(string name)
+        public static NodeInfo GetByType(int id)
         {
-            return _nodeTypes[name];
+            return NodeTypes[id];
         }
     }
 }

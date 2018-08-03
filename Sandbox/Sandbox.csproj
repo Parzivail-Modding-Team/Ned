@@ -75,6 +75,8 @@
     </Compile>
     <Compile Include="Grid.cs" />
     <Compile Include="GuiHandler.cs" />
+    <Compile Include="KeybindHandler.cs" />
+    <Compile Include="KeyCombo.cs" />
     <Compile Include="MainWindow.cs" />
     <Compile Include="MarchingAnts.cs" />
     <Compile Include="Program.cs" />
@@ -137,9 +139,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
-    <None Include="demo.ned">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="Resources\icons8-add-property-16.png" />
     <None Include="Resources\icons8-remove-property-16.png" />
   </ItemGroup>

@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Linq;
 using Ned;
 using OpenTK;
+using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
 using PFX;
@@ -16,6 +17,7 @@ namespace Sandbox
 {
     public class MainWindow : GameWindow
     {
+        private readonly Dictionary<NodeInfo, Color> _colorMap = new Dictionary<NodeInfo, Color>();
         private readonly Dictionary<Node, Vector2> _draggingNodeOffset = new Dictionary<Node, Vector2>();
         private readonly Profiler _profiler = new Profiler();
         private ContextMenu _contextMenu;
@@ -223,6 +225,51 @@ namespace Sandbox
                 _draggingConnection == null || _draggingConnection.ParentNode != connection.ParentNode &&
                 _draggingConnection.Side != connection.Side;
 
+            _colorMap.Add(NodeInfo.None, Color.Black);
+
+            _colorMap.Add(NodeInfo.Start, Color.LimeGreen);
+            _colorMap.Add(NodeInfo.End, Color.IndianRed);
+
+            _colorMap.Add(NodeInfo.NpcDialogue, Color.MediumPurple);
+            _colorMap.Add(NodeInfo.PlayerDialogue, Color.LightSkyBlue);
+
+            _colorMap.Add(NodeInfo.WaitForFlag, Color.Orange);
+            _colorMap.Add(NodeInfo.SetFlag, Color.MediumSeaGreen);
+            _colorMap.Add(NodeInfo.ClearFlag, Color.MediumVioletRed);
+
+            _colorMap.Add(NodeInfo.HasQuest, Color.DarkOrange);
+            _colorMap.Add(NodeInfo.StartQuest, Color.CadetBlue);
+            _colorMap.Add(NodeInfo.CompleteQuest, Color.DarkOrchid);
+
+            _colorMap.Add(NodeInfo.TriggerEvent, Color.DarkKhaki);
+
+            KeybindHandler.Register(new KeyCombo("Delete Selection", Key.Delete), () => _selectionHandler.Delete());
+            KeybindHandler.Register(new KeyCombo("Reset Zoom", Key.R, KeyModifiers.Control), () => SetZoom(1));
+            KeybindHandler.Register(new KeyCombo("Reset Zoom and Pan", Key.R, KeyModifiers.Control | KeyModifiers.Shift), () =>
+            {
+                SetZoom(1);
+                _grid.Offset = Vector2.Zero;
+            });
+            KeybindHandler.Register(new KeyCombo("Add Output", Key.Plus, KeyModifiers.Control), () =>
+            {
+                if (_selectionHandler.SingleSelectedNode == null || _selectionHandler.SingleSelectedNode.NodeInfo.CanEditConnectors) return;
+
+                AddOutput(_selectionHandler.SingleSelectedNode);
+            });
+            KeybindHandler.Register(new KeyCombo("Copy", Key.C, KeyModifiers.Control), () => _selectionHandler.Copy());
+            KeybindHandler.Register(new KeyCombo("Cut", Key.X, KeyModifiers.Control), () => _selectionHandler.Cut());
+            KeybindHandler.Register(new KeyCombo("Paste", Key.V, KeyModifiers.Control), () => _selectionHandler.Paste(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, !_keyboard[Key.ShiftLeft], _grid.Pitch));
+            KeybindHandler.Register(new KeyCombo("Open Project", Key.O, KeyModifiers.Control), () => DialogEditor.AskOpenFile());
+            KeybindHandler.Register(new KeyCombo("Save Project", Key.S, KeyModifiers.Control), () => DialogEditor.AskSaveFile());
+            KeybindHandler.Register(new KeyCombo("Save Project As", Key.S, KeyModifiers.Control | KeyModifiers.Shift), () => DialogEditor.AskSaveFileAs());
+            KeybindHandler.Register(new KeyCombo("Export Graph", Key.E, KeyModifiers.Control), () => DialogEditor.AskExportFile());
+
+            var keybinds = KeybindHandler.GetKeybinds();
+
+            Lumberjack.Info("Keybinds:");
+            foreach (var keyCombo in keybinds)
+                Lumberjack.WriteLine(keyCombo.ToString(), ConsoleColor.Blue, OutputLevel.Info, "KEYS");
+
             Lumberjack.Info("Window Loaded.");
         }
 
@@ -287,44 +334,7 @@ namespace Sandbox
                 return;
             }
 
-            if (e.Key == Key.Delete) _selectionHandler.Delete();
-
-            if (e.Control && e.Key == Key.R)
-            {
-                SetZoom(1);
-                if (e.Shift)
-                    _grid.Offset = Vector2.Zero;
-            }
-
-            if (e.Control && e.Key == Key.Plus)
-            {
-                if (_selectionHandler.SingleSelectedNode == null || _selectionHandler.SingleSelectedNode.NodeInfo.CanEditConnectors) return;
-
-                AddOutput(_selectionHandler.SingleSelectedNode);
-            }
-
-            if (e.Control && e.Key == Key.C) _selectionHandler.Copy();
-
-            if (e.Control && e.Key == Key.X) _selectionHandler.Cut();
-
-            if (e.Control && e.Key == Key.V)
-                _selectionHandler.Paste(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, !_keyboard[Key.ShiftLeft],
-                    _grid.Pitch);
-
-            if (e.Control && e.Key == Key.O) DialogEditor.AskOpenFile();
-
-            if (e.Control && e.Key == Key.S)
-            {
-                if (e.Shift)
-                    DialogEditor.AskSaveFileAs();
-                else
-                    DialogEditor.AskSaveFile();
-            }
-
-            if (e.Control && e.Key == Key.E)
-            {
-                    DialogEditor.AskExportFile();
-            }
+            KeybindHandler.Consume(new KeyCombo(e));
         }
 
         private void AddOutput(Node node)
@@ -542,11 +552,6 @@ namespace Sandbox
             Fx.D2.DrawLine(-10, 0, 10, 0);
             Fx.D2.DrawLine(0, -10, 0, 10);
 
-            GL.Color3(Color.DarkGray);
-            if (_selectionHandler.SelectionRectangle != null)
-                Fx.D2.DrawWireRectangle(_selectionHandler.SelectionRectangle.X, _selectionHandler.SelectionRectangle.Y,
-                    _selectionHandler.SelectionRectangle.Width, _selectionHandler.SelectionRectangle.Height);
-
             GL.LineWidth(3);
             if (_draggingConnection != null)
             {
@@ -572,9 +577,14 @@ namespace Sandbox
                 RenderConnections(node);
             }
 
+            GL.Disable(EnableCap.DepthTest);
+            GL.Color4(new Color4(0f, 0f, 1f, 0.1f));
+            if (_selectionHandler.SelectionRectangle != null)
+                Fx.D2.DrawSolidRectangle(_selectionHandler.SelectionRectangle.X, _selectionHandler.SelectionRectangle.Y,
+                    _selectionHandler.SelectionRectangle.Width, _selectionHandler.SelectionRectangle.Height);
+
             GL.PopMatrix();
 
-            GL.Disable(EnableCap.DepthTest);
             GL.Enable(EnableCap.Texture2D);
 
             _contextMenu.Render();
@@ -682,6 +692,7 @@ namespace Sandbox
             var r = bound.Radius;
             var twor = 2 * r;
             var halfr = r / 2;
+            const int expansion = 2;
 
             GL.Color3(Color.White);
             GL.Enable(EnableCap.Texture2D);
@@ -718,9 +729,9 @@ namespace Sandbox
             GL.Color3(Color.DarkSlateGray);
             //Fx.D2.DrawSolidCircle(bound.X, bound.Y, r + 2);
             if (connection.Side == NodeSide.Input)
-                Fx.D2.DrawSolidRoundRectangle(bound.X - r - 2, bound.Y - r - 2, twor + 4, twor + 4, r + 2, 0, r + 2, 0);
+                Fx.D2.DrawSolidRoundRectangle(bound.X - r - expansion, bound.Y - r - expansion, twor + 2 * expansion, twor + 2 * expansion, r + expansion, 0, r + expansion, 0);
             else
-                Fx.D2.DrawSolidRoundRectangle(bound.X - r - 2, bound.Y - r - 2, twor + 4, twor + 4, 0, r + 2, 0, r + 2);
+                Fx.D2.DrawSolidRoundRectangle(bound.X - r - expansion, bound.Y - r - expansion, twor + 2 * expansion, twor + 2 * expansion, 0, r + expansion, 0, r + expansion);
 
             GL.Translate(0, 0, 0.01);
 
@@ -782,30 +793,7 @@ namespace Sandbox
 
             GL.Translate(0, 0, 0.01);
 
-            if (node.NodeInfo == NodeInfo.None)
-                GL.Color3(Color.Black);
-            else if (node.NodeInfo == NodeInfo.Start)
-                GL.Color3(Color.LimeGreen);
-            else if (node.NodeInfo == NodeInfo.End)
-                GL.Color3(Color.IndianRed);
-            else if (node.NodeInfo == NodeInfo.NpcDialogue)
-                GL.Color3(Color.MediumPurple);
-            else if (node.NodeInfo == NodeInfo.PlayerDialogue)
-                GL.Color3(Color.LightSkyBlue);
-            else if (node.NodeInfo == NodeInfo.WaitForFlag)
-                GL.Color3(Color.Orange);
-            else if (node.NodeInfo == NodeInfo.SetFlag)
-                GL.Color3(Color.MediumSeaGreen);
-            else if (node.NodeInfo == NodeInfo.ClearFlag)
-                GL.Color3(Color.MediumVioletRed);
-            else if (node.NodeInfo == NodeInfo.HasQuest)
-                GL.Color3(Color.DarkOrange);
-            else if (node.NodeInfo == NodeInfo.StartQuest)
-                GL.Color3(Color.CadetBlue);
-            else if (node.NodeInfo == NodeInfo.CompleteQuest)
-                GL.Color3(Color.DarkOrchid);
-            else if (node.NodeInfo == NodeInfo.TriggerEvent)
-                GL.Color3(Color.DarkKhaki);
+            GL.Color3(_colorMap.ContainsKey(node.NodeInfo) ? _colorMap[node.NodeInfo] : Color.Black);
 
             Fx.D2.DrawSolidRoundRectangle(node.X, node.Y, node.Width, node.Height, borderRadius, borderRadius,
                 borderRadius, borderRadius);
@@ -838,16 +826,15 @@ namespace Sandbox
                 return;
 
             if (Zoom >= 0.5)
-            {
                 Font.RenderString(s);
-            }
             else
             {
                 GL.PushAttrib(AttribMask.EnableBit);
                 GL.Disable(EnableCap.Texture2D);
                 var size = Font.MeasureString(s);
                 var halfHeight = Font.Common.LineHeight / 2;
-                Fx.D2.DrawSolidRoundRectangle(0, 0, size.Width, Font.Common.LineHeight, halfHeight, halfHeight, halfHeight,
+                Fx.D2.DrawSolidRoundRectangle(0, 0, size.Width, Font.Common.LineHeight, halfHeight, halfHeight,
+                    halfHeight,
                     halfHeight);
                 GL.PopAttrib();
             }
