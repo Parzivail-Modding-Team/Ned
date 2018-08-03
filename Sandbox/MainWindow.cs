@@ -20,6 +20,7 @@ namespace Sandbox
         private readonly Dictionary<NodeInfo, Color> _colorMap = new Dictionary<NodeInfo, Color>();
         private readonly Dictionary<Node, Vector2> _draggingNodeOffset = new Dictionary<Node, Vector2>();
         private readonly Profiler _profiler = new Profiler();
+        private readonly Color4 _selectionRectangleColor = new Color4(0f, 0f, 1f, 0.1f);
         private readonly float[] _zoomLevels = {0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1, 2, 3, 4};
         private ContextMenu _contextMenu;
         private bool _draggingBackground;
@@ -80,7 +81,8 @@ namespace Sandbox
 
         private void CreateContextMenu(Node context, float x, float y)
         {
-            _contextMenu = new ContextMenu(MouseScreenSpace.X + 1, MouseScreenSpace.Y + 1, 250);
+            const int ctxMenuOffset = 1;
+            _contextMenu = new ContextMenu(MouseScreenSpace.X + ctxMenuOffset, MouseScreenSpace.Y + ctxMenuOffset, 250);
 
             if (context == null)
             {
@@ -190,14 +192,15 @@ namespace Sandbox
         private int GetNodeWidth(Node node)
         {
             var width = 120;
+            const int textPadding = 40;
 
-            width = (int) Math.Max(Font.MeasureString(node.Name).Width + 40, width);
+            width = (int) Math.Max(Font.MeasureString(node.Name).Width + textPadding, width);
 
             if (node.Input != null)
-                width = (int) Math.Max(Font.MeasureString(node.Input.Text).Width + 40, width);
+                width = (int) Math.Max(Font.MeasureString(node.Input.Text).Width + textPadding, width);
 
             foreach (var connection in node.Outputs)
-                width = (int) Math.Max(Font.MeasureString(connection.Text).Width + 40, width);
+                width = (int) Math.Max(Font.MeasureString(connection.Text).Width + textPadding, width);
 
             width = (int) (Math.Ceiling(width / (float) _grid.Pitch) * _grid.Pitch);
 
@@ -395,7 +398,6 @@ namespace Sandbox
                     }
 
                     var clickedTextBox = GuiHandler.PickAndCreate(this, Graph, x, y);
-
                     if (clickedTextBox != null)
                     {
                         clickedTextBox.OnMouseDown(mouseButtonEventArgs);
@@ -407,7 +409,6 @@ namespace Sandbox
                     }
 
                     var clickedConnection = Graph.PickConnection(x, y, _draggingConnectionPredicate);
-
                     if (clickedConnection != null)
                     {
                         _selectionHandler.Select(null);
@@ -420,7 +421,6 @@ namespace Sandbox
                     }
 
                     var clickedNode = Graph.PickNode(x, y);
-
                     if (clickedNode != null)
                     {
                         if (!_selectionHandler.SelectedNodes.Contains(clickedNode))
@@ -439,7 +439,7 @@ namespace Sandbox
                         _selectionHandler.Select(null);
 
                     _selectionHandler.SelectionRectangle =
-                        new Rectangle(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, 1, 1);
+                        new Rectangle(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, 0, 0);
                     break;
             }
         }
@@ -587,10 +587,11 @@ namespace Sandbox
             GL.LineWidth(2);
 
             GL.Color3(Color.Black);
-            Fx.D2.DrawLine(-10, 0, 10, 0);
-            Fx.D2.DrawLine(0, -10, 0, 10);
+            Fx.D2.DrawLine(-_grid.Pitch, 0, _grid.Pitch, 0);
+            Fx.D2.DrawLine(0, -_grid.Pitch, 0, _grid.Pitch);
 
-            GL.LineWidth(3);
+            const int cxnLineWidth = 3;
+            GL.LineWidth(cxnLineWidth);
             if (_draggingConnection != null)
             {
                 var end = _mouseCanvasSpace;
@@ -604,7 +605,7 @@ namespace Sandbox
 
                 GL.Color3(Color.Gray);
                 RenderConnection(_draggingConnection, end);
-                Fx.D2.DrawSolidCircle(end.X, end.Y, 3);
+                Fx.D2.DrawSolidCircle(end.X, end.Y, cxnLineWidth);
             }
 
             foreach (var node in Graph)
@@ -616,7 +617,7 @@ namespace Sandbox
             }
 
             GL.Disable(EnableCap.DepthTest);
-            GL.Color4(new Color4(0f, 0f, 1f, 0.1f));
+            GL.Color4(_selectionRectangleColor);
             if (_selectionHandler.SelectionRectangle != null)
                 Fx.D2.DrawSolidRectangle(_selectionHandler.SelectionRectangle.X, _selectionHandler.SelectionRectangle.Y,
                     _selectionHandler.SelectionRectangle.Width, _selectionHandler.SelectionRectangle.Height);
@@ -695,7 +696,7 @@ namespace Sandbox
             var r = bound.Radius;
             var twor = 2 * r;
             var halfr = r / 2;
-            const int expansion = 2;
+            const int cxnBorderWidth = 2;
 
             GL.Color3(Color.White);
             GL.Enable(EnableCap.Texture2D);
@@ -733,11 +734,13 @@ namespace Sandbox
             GL.Color3(Color.DarkSlateGray);
             //Fx.D2.DrawSolidCircle(bound.X, bound.Y, r + 2);
             if (connection.Side == NodeSide.Input)
-                Fx.D2.DrawSolidRoundRectangle(bound.X - r - expansion, bound.Y - r - expansion, twor + 2 * expansion,
-                    twor + 2 * expansion, r + expansion, 0, r + expansion, 0);
+                Fx.D2.DrawSolidRoundRectangle(bound.X - r - cxnBorderWidth, bound.Y - r - cxnBorderWidth,
+                    twor + 2 * cxnBorderWidth,
+                    twor + 2 * cxnBorderWidth, r + cxnBorderWidth, 0, r + cxnBorderWidth, 0);
             else
-                Fx.D2.DrawSolidRoundRectangle(bound.X - r - expansion, bound.Y - r - expansion, twor + 2 * expansion,
-                    twor + 2 * expansion, 0, r + expansion, 0, r + expansion);
+                Fx.D2.DrawSolidRoundRectangle(bound.X - r - cxnBorderWidth, bound.Y - r - cxnBorderWidth,
+                    twor + 2 * cxnBorderWidth,
+                    twor + 2 * cxnBorderWidth, 0, r + cxnBorderWidth, 0, r + cxnBorderWidth);
 
             GL.Translate(0, 0, 0.01);
 
@@ -779,6 +782,11 @@ namespace Sandbox
         private void RenderNode(Node node)
         {
             const int borderRadius = 6;
+            const int headerHeight = 18;
+            const int panelInset = 2;
+            const float halfPanelInset = panelInset / 2f;
+
+            var oneCanvasPixel = 1 / Zoom;
 
             GL.PushMatrix();
             GL.Translate(0, 0, node.Layer);
@@ -787,13 +795,15 @@ namespace Sandbox
             if (_selectionHandler.SelectedNodes.Contains(node))
             {
                 GL.Color3(Color.White);
-                Fx.D2.DrawSolidRoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom,
-                    node.Height + 2 / Zoom, borderRadius, borderRadius, borderRadius, borderRadius);
+                Fx.D2.DrawSolidRoundRectangle(node.X - oneCanvasPixel, node.Y - oneCanvasPixel,
+                    node.Width + 2 * oneCanvasPixel,
+                    node.Height + 2 * oneCanvasPixel, borderRadius, borderRadius, borderRadius, borderRadius);
                 GL.Translate(0, 0, 0.01);
                 GL.Color3(Color.Black);
                 MarchingAnts.Use();
-                Fx.D2.DrawSolidRoundRectangle(node.X - 1 / Zoom, node.Y - 1 / Zoom, node.Width + 2 / Zoom,
-                    node.Height + 2 / Zoom, borderRadius, borderRadius, borderRadius, borderRadius);
+                Fx.D2.DrawSolidRoundRectangle(node.X - oneCanvasPixel, node.Y - oneCanvasPixel,
+                    node.Width + 2 * oneCanvasPixel,
+                    node.Height + 2 * oneCanvasPixel, borderRadius, borderRadius, borderRadius, borderRadius);
                 MarchingAnts.Release();
             }
 
@@ -807,14 +817,17 @@ namespace Sandbox
             GL.Translate(0, 0, 0.01);
 
             GL.Color3(Color.DarkSlateGray);
-            Fx.D2.DrawSolidRoundRectangle(node.X + 2, node.Y + 20, node.Width - 4, node.Height - 20 - 2,
-                borderRadius - 1, borderRadius - 1, borderRadius - 1, borderRadius - 1);
+            Fx.D2.DrawSolidRoundRectangle(node.X + panelInset, node.Y + headerHeight + panelInset,
+                node.Width - 2 * panelInset, node.Height - headerHeight - 2 * panelInset,
+                borderRadius - halfPanelInset, borderRadius - halfPanelInset, borderRadius - halfPanelInset,
+                borderRadius - halfPanelInset);
 
             GL.Enable(EnableCap.Texture2D);
             GL.Color3(Color.White);
 
             GL.PushMatrix();
-            GL.Translate(node.X + 4, node.Y + 4, 0.01);
+            var headerOffset = (headerHeight + panelInset) / 2f - Font.MeasureString(node.Name).Height / 2;
+            GL.Translate(node.X + 2 * panelInset, node.Y + headerOffset, 0.01);
             RenderString(node.Name);
             GL.PopMatrix();
 
