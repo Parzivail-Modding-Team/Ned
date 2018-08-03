@@ -35,7 +35,7 @@ namespace Ned
             X = node.X;
             Y = node.Y;
             Name = node.Name;
-            NodeInfo = Ned.NodeInfo.GetByName(node.NodeFunction);
+            NodeInfo = NodeInfo.GetByName(node.NodeFunction);
 
             _cachedLoadingNode = node;
 

@@ -10,6 +10,7 @@ namespace Ned
 {
     public class NodeInfo
     {
+        private static readonly Dictionary<string, NodeInfo> _nodeTypes = new Dictionary<string, NodeInfo>();
         public string Name { get; }
         public int Type { get; }
         public Action<Node> AddConnections { get; }
@@ -84,6 +85,7 @@ namespace Ned
             AddConnections = addConnections;
             CanEditConnectors = canEditConnectors;
             CanEditNode = canEditNode;
+            _nodeTypes.Add(name, this);
         }
 
         public override bool Equals(object obj)
@@ -110,7 +112,7 @@ namespace Ned
 
         public static NodeInfo GetByName(string name)
         {
-            return typeof(NodeInfo).GetProperties(BindingFlags.Static | BindingFlags.Public).Select(member => (NodeInfo) member.GetValue(null)).FirstOrDefault(prop => prop.Name == name);
+            return _nodeTypes[name];
         }
     }
 }
