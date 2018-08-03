@@ -422,7 +422,7 @@ namespace PFX.Util
         }
 
         //2D OpenSimplex Noise.
-            public double Eval(double x, double y)
+        public double Eval(double x, double y)
         {
             //Place input coordinates onto grid.
             var stretchOffset = (x + y) * StretchConstant_2D;

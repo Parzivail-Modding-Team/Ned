@@ -10,30 +10,16 @@ namespace Sandbox
 {
     internal class ContextMenu : List<ContextMenuItem>
     {
-        public ContextMenu(float x, float y, int width)
-        {
-            X = x;
-            Y = y;
-            Width = width;
-        }
-
         public float X { get; set; }
         public float Y { get; set; }
         public int Width { get; set; }
         public bool Visible { get; set; }
 
-        public void Render()
+        public ContextMenu(float x, float y, int width)
         {
-            if (!Visible)
-                return;
-
-            GL.PushMatrix();
-            GL.Translate(X, Y, 0);
-            foreach (var menuItem in this)
-                menuItem.RenderBackground();
-            foreach (var menuItem in this)
-                menuItem.Render();
-            GL.PopMatrix();
+            X = x;
+            Y = y;
+            Width = width;
         }
 
         public new void Add(ContextMenuItem item)
@@ -48,13 +34,34 @@ namespace Sandbox
             Width = 50;
 
             foreach (var item in this)
-                Width = (int)Math.Max(Width, item.Width + 10);
+                Width = (int) Math.Max(Width, item.Width + 10);
+        }
+
+        public void Render()
+        {
+            if (!Visible)
+                return;
+
+            GL.PushMatrix();
+            GL.Translate(X, Y, 0);
+            foreach (var menuItem in this)
+                menuItem.RenderBackground();
+            foreach (var menuItem in this)
+                menuItem.Render();
+            GL.PopMatrix();
         }
     }
 
     internal class ContextMenuItem : IShape
     {
         private readonly MainWindow _window;
+
+        public string Shortcut { get; }
+        public string Text { get; }
+        public Action<ContextMenuItem> Action { get; }
+        public int Index { get; set; }
+        public ContextMenu Parent { get; set; }
+        public float Width => _window.Font.MeasureString($"{Shortcut} {Text}").Width;
 
         public ContextMenuItem(MainWindow window, string text, Action<ContextMenuItem> action)
         {
@@ -70,13 +77,6 @@ namespace Sandbox
             Text = text;
             Action = action;
         }
-
-        public string Shortcut { get; }
-        public string Text { get; }
-        public Action<ContextMenuItem> Action { get; }
-        public int Index { get; set; }
-        public ContextMenu Parent { get; set; }
-        public float Width => _window.Font.MeasureString($"{Shortcut} {Text}").Width;
 
         public bool Pick(float x, float y)
         {

@@ -10,12 +10,20 @@ namespace PFX
 {
     public class Sparkline : ConcurrentQueue<float>
     {
+        public enum SparklineStyle
+        {
+            Area,
+            Line
+        }
+
         private readonly BitmapFont _font;
         private readonly string _label;
         private readonly float _maxValue;
         private readonly SparklineStyle _style;
 
         private readonly object _syncObject = new object();
+
+        public int MaxEntries { get; }
 
         public Sparkline(BitmapFont font, string label, int maxEntries, float maxValue, SparklineStyle style)
         {
@@ -26,7 +34,22 @@ namespace PFX
             _style = style;
         }
 
-        public int MaxEntries { get; }
+        private double Clamp(float x)
+        {
+            if (x > _maxValue)
+                return _maxValue;
+            return x < 0 ? 0 : x;
+        }
+
+        public new void Enqueue(float obj)
+        {
+            base.Enqueue(obj);
+            lock (_syncObject)
+            {
+                while (Count > MaxEntries)
+                    TryDequeue(out var outObj);
+            }
+        }
 
         public void Render(Color foreColor, Color backColor, params object[] formatArgs)
         {
@@ -41,7 +64,7 @@ namespace PFX
             GL.Disable(EnableCap.PolygonSmooth);
             GL.Disable(EnableCap.PointSmooth);
             GL.Disable(EnableCap.DepthTest);
-            
+
             GL.Color3(backColor);
             Fx.D2.DrawSolidRectangle(0, 0, MaxEntries, _font.Common.LineHeight);
 
@@ -77,29 +100,6 @@ namespace PFX
 
             GL.PopAttrib();
             GL.PopMatrix();
-        }
-
-        private double Clamp(float x)
-        {
-            if (x > _maxValue)
-                return _maxValue;
-            return x < 0 ? 0 : x;
-        }
-
-        public new void Enqueue(float obj)
-        {
-            base.Enqueue(obj);
-            lock (_syncObject)
-            {
-                while (Count > MaxEntries)
-                    TryDequeue(out var outObj);
-            }
-        }
-
-        public enum SparklineStyle
-        {
-            Area,
-            Line
         }
     }
 }

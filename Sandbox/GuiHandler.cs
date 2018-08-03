@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Ned;
-using Rectangle = Ned.Rectangle;
+﻿using Ned;
 
 namespace Sandbox
 {
-    class GuiHandler
+    internal class GuiHandler
     {
         public static TextBox TextBox;
         public static Connection EditingConnection;
@@ -45,6 +38,7 @@ namespace Sandbox
                 StartEditing(window, output);
                 return TextBox;
             }
+
             return null;
         }
 

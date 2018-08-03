@@ -1,36 +1,20 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace Ned
 {
     public class Graph : List<Node>
     {
-        public Connection PickConnection(float x, float y, Func<Connection, bool> predicate = null)
+        public new void Add(Node node)
         {
-            foreach (var node in this)
-            {
-                if (node.Input != null && node.Input.GetBounds().Pick(x, y))
-                    return node.Input;
+            if (Count >= 2000)
+                return;
 
-                foreach (var connection in node.Outputs)
-                {
-                    if (connection.GetBounds().Pick(x, y))
-                        return connection;
-                }
-            }
-
-            return null;
-        }
-
-        public Node PickNode(float x, float y)
-        {
-            return this.OrderByDescending(node => node.Layer).FirstOrDefault(node => node.Pick(x, y));
+            base.Add(node);
+            RelayerNodes();
         }
 
         public void ClearConnectionsFrom(Connection connection)
@@ -43,10 +27,8 @@ namespace Ned
             else // Loop through the rest of the nodes since we only store a one-way connection to rmeove cyclic dependencies
                 foreach (var node in this)
                 foreach (var output in node.Outputs)
-                {
                     if (output.ConnectedNode == connection)
                         output.ConnectedNode = null;
-                }
         }
 
         public Connection GetConnection(Guid id)
@@ -73,12 +55,6 @@ namespace Ned
             return null;
         }
 
-        public void SaveAs(string fileName)
-        {
-            var savedGraph = this.Select(node => node.Save()).ToList();
-            File.WriteAllText(fileName, JsonConvert.SerializeObject(savedGraph));
-        }
-
         public static Graph Load(string fileName)
         {
             var graph = new Graph();
@@ -96,6 +72,32 @@ namespace Ned
             return graph;
         }
 
+        public Connection PickConnection(float x, float y, Func<Connection, bool> predicate = null)
+        {
+            foreach (var node in this)
+            {
+                if (node.Input != null && node.Input.GetBounds().Pick(x, y))
+                    return node.Input;
+
+                foreach (var connection in node.Outputs)
+                    if (connection.GetBounds().Pick(x, y))
+                        return connection;
+            }
+
+            return null;
+        }
+
+        public Node PickNode(float x, float y)
+        {
+            return this.OrderByDescending(node => node.Layer).FirstOrDefault(node => node.Pick(x, y));
+        }
+
+        private void RelayerNodes()
+        {
+            for (var i = 0; i < Count; i++)
+                this[i].Layer = i;
+        }
+
         public new void Remove(Node node)
         {
             ClearConnectionsFrom(node.Input);
@@ -105,19 +107,10 @@ namespace Ned
             base.Remove(node);
         }
 
-        public new void Add(Node node)
+        public void SaveAs(string fileName)
         {
-            if (Count >= 2000)
-                return;
-
-            base.Add(node);
-            RelayerNodes();
-        }
-
-        private void RelayerNodes()
-        {
-            for (var i = 0; i < this.Count; i++)
-                this[i].Layer = i;
+            var savedGraph = this.Select(node => node.Save()).ToList();
+            File.WriteAllText(fileName, JsonConvert.SerializeObject(savedGraph));
         }
     }
 }

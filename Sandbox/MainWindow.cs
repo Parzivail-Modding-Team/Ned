@@ -20,6 +20,7 @@ namespace Sandbox
         private readonly Dictionary<NodeInfo, Color> _colorMap = new Dictionary<NodeInfo, Color>();
         private readonly Dictionary<Node, Vector2> _draggingNodeOffset = new Dictionary<Node, Vector2>();
         private readonly Profiler _profiler = new Profiler();
+        private readonly float[] _zoomLevels = {0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1, 2, 3, 4};
         private ContextMenu _contextMenu;
         private bool _draggingBackground;
         private Connection _draggingConnection;
@@ -34,7 +35,6 @@ namespace Sandbox
         private Sparkline _renderTimeSparkline;
         private SelectionHandler _selectionHandler;
         private bool _shouldDie;
-        private readonly float[] _zoomLevels = { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1, 2, 3, 4 };
         private int _zoomIdx = 5;
 
         public FormDialogueEditor DialogEditor;
@@ -63,6 +63,19 @@ namespace Sandbox
 
             Title = $"{string.Format(Resources.AppTitleWorking, "Untitled")}  (beta-{Resources.Version})";
             //Icon = EmbeddedFiles.logo;
+        }
+
+        private void AddOutput(Node node)
+        {
+            var c = new Connection(node, NodeSide.Output, 0, "Dialog Option");
+            node.Outputs.Add(c);
+            node.BuildConnections();
+            GuiHandler.StartEditing(this, c);
+        }
+
+        public Vector2 CanvasToScreenSpace(Vector2 input)
+        {
+            return (input + _grid.Offset) * Zoom;
         }
 
         private void CreateContextMenu(Node context, float x, float y)
@@ -174,6 +187,23 @@ namespace Sandbox
             _contextMenu.RecalculateWidth();
         }
 
+        private int GetNodeWidth(Node node)
+        {
+            var width = 120;
+
+            width = (int) Math.Max(Font.MeasureString(node.Name).Width + 40, width);
+
+            if (node.Input != null)
+                width = (int) Math.Max(Font.MeasureString(node.Input.Text).Width + 40, width);
+
+            foreach (var connection in node.Outputs)
+                width = (int) Math.Max(Font.MeasureString(connection.Text).Width + 40, width);
+
+            width = (int) (Math.Ceiling(width / (float) _grid.Pitch) * _grid.Pitch);
+
+            return width;
+        }
+
         private void HandleClose(object sender, CancelEventArgs e)
         {
             DialogEditor.Close();
@@ -202,8 +232,8 @@ namespace Sandbox
             Font = BitmapFont.LoadBinaryFont("dina", FontBank.FontDina, FontBank.BmDina);
 
             // Load sparklines
-            _fpsSparkline = new Sparkline(Font, $"0-{(int)TargetRenderFrequency}fps", 50,
-                (float)TargetRenderFrequency, Sparkline.SparklineStyle.Area);
+            _fpsSparkline = new Sparkline(Font, $"0-{(int) TargetRenderFrequency}fps", 50,
+                (float) TargetRenderFrequency, Sparkline.SparklineStyle.Area);
             _renderTimeSparkline = new Sparkline(Font, "0-50ms", 50, 50, Sparkline.SparklineStyle.Area);
 
             // Init keyboard to ensure first frame won't NPE
@@ -245,24 +275,32 @@ namespace Sandbox
 
             KeybindHandler.Register(new KeyCombo("Delete Selection", Key.Delete), () => _selectionHandler.Delete());
             KeybindHandler.Register(new KeyCombo("Reset Zoom", Key.R, KeyModifiers.Control), () => SetZoom(1));
-            KeybindHandler.Register(new KeyCombo("Reset Zoom and Pan", Key.R, KeyModifiers.Control | KeyModifiers.Shift), () =>
-            {
-                SetZoom(1);
-                _grid.Offset = Vector2.Zero;
-            });
+            KeybindHandler.Register(
+                new KeyCombo("Reset Zoom and Pan", Key.R, KeyModifiers.Control | KeyModifiers.Shift), () =>
+                {
+                    SetZoom(1);
+                    _grid.Offset = Vector2.Zero;
+                });
             KeybindHandler.Register(new KeyCombo("Add Output", Key.Plus, KeyModifiers.Control), () =>
             {
-                if (_selectionHandler.SingleSelectedNode == null || _selectionHandler.SingleSelectedNode.NodeInfo.CanEditConnectors) return;
+                if (_selectionHandler.SingleSelectedNode == null ||
+                    _selectionHandler.SingleSelectedNode.NodeInfo.CanEditConnectors) return;
 
                 AddOutput(_selectionHandler.SingleSelectedNode);
             });
             KeybindHandler.Register(new KeyCombo("Copy", Key.C, KeyModifiers.Control), () => _selectionHandler.Copy());
             KeybindHandler.Register(new KeyCombo("Cut", Key.X, KeyModifiers.Control), () => _selectionHandler.Cut());
-            KeybindHandler.Register(new KeyCombo("Paste", Key.V, KeyModifiers.Control), () => _selectionHandler.Paste(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, !_keyboard[Key.ShiftLeft], _grid.Pitch));
-            KeybindHandler.Register(new KeyCombo("Open Project", Key.O, KeyModifiers.Control), () => DialogEditor.AskOpenFile());
-            KeybindHandler.Register(new KeyCombo("Save Project", Key.S, KeyModifiers.Control), () => DialogEditor.AskSaveFile());
-            KeybindHandler.Register(new KeyCombo("Save Project As", Key.S, KeyModifiers.Control | KeyModifiers.Shift), () => DialogEditor.AskSaveFileAs());
-            KeybindHandler.Register(new KeyCombo("Export Graph", Key.E, KeyModifiers.Control), () => DialogEditor.AskExportFile());
+            KeybindHandler.Register(new KeyCombo("Paste", Key.V, KeyModifiers.Control),
+                () => _selectionHandler.Paste(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, !_keyboard[Key.ShiftLeft],
+                    _grid.Pitch));
+            KeybindHandler.Register(new KeyCombo("Open Project", Key.O, KeyModifiers.Control),
+                () => DialogEditor.AskOpenFile());
+            KeybindHandler.Register(new KeyCombo("Save Project", Key.S, KeyModifiers.Control),
+                () => DialogEditor.AskSaveFile());
+            KeybindHandler.Register(new KeyCombo("Save Project As", Key.S, KeyModifiers.Control | KeyModifiers.Shift),
+                () => DialogEditor.AskSaveFileAs());
+            KeybindHandler.Register(new KeyCombo("Export Graph", Key.E, KeyModifiers.Control),
+                () => DialogEditor.AskExportFile());
 
             var keybinds = KeybindHandler.GetKeybinds();
 
@@ -271,23 +309,6 @@ namespace Sandbox
                 Lumberjack.WriteLine(keyCombo.ToString(), ConsoleColor.Blue, OutputLevel.Info, "KEYS");
 
             Lumberjack.Info("Window Loaded.");
-        }
-
-        private int GetNodeWidth(Node node)
-        {
-            var width = 120;
-
-            width = (int)Math.Max(Font.MeasureString(node.Name).Width + 40, width);
-
-            if (node.Input != null)
-                width = (int)Math.Max(Font.MeasureString(node.Input.Text).Width + 40, width);
-
-            foreach (var connection in node.Outputs)
-                width = (int)Math.Max(Font.MeasureString(connection.Text).Width + 40, width);
-
-            width = (int)(Math.Ceiling(width / (float)_grid.Pitch) * _grid.Pitch);
-
-            return width;
         }
 
         private void HandleResize(object sender, EventArgs e)
@@ -337,14 +358,6 @@ namespace Sandbox
             KeybindHandler.Consume(new KeyCombo(e));
         }
 
-        private void AddOutput(Node node)
-        {
-            var c = new Connection(node, NodeSide.Output, 0, "Dialog Option");
-            node.Outputs.Add(c);
-            node.BuildConnections();
-            GuiHandler.StartEditing(this, c);
-        }
-
         private void OnKeyPress(object sender, KeyPressEventArgs e)
         {
             if (GuiHandler.TextBox == null) return;
@@ -356,7 +369,8 @@ namespace Sandbox
             switch (mouseButtonEventArgs.Button)
             {
                 case MouseButton.Right:
-                    CreateContextMenu(Graph.PickNode(_mouseCanvasSpace.X, _mouseCanvasSpace.Y), _mouseCanvasSpace.X, _mouseCanvasSpace.Y);
+                    CreateContextMenu(Graph.PickNode(_mouseCanvasSpace.X, _mouseCanvasSpace.Y), _mouseCanvasSpace.X,
+                        _mouseCanvasSpace.Y);
                     _contextMenu.Visible = true;
                     break;
                 case MouseButton.Middle:
@@ -388,7 +402,9 @@ namespace Sandbox
                         return;
                     }
                     else
+                    {
                         GuiHandler.Destroy();
+                    }
 
                     var clickedConnection = Graph.PickConnection(x, y, _draggingConnectionPredicate);
 
@@ -462,8 +478,8 @@ namespace Sandbox
 
                     if (!_keyboard[Key.ShiftLeft])
                     {
-                        node.X = (int)(Math.Floor(node.X / _grid.Pitch) * _grid.Pitch);
-                        node.Y = (int)(Math.Floor(node.Y / _grid.Pitch) * _grid.Pitch);
+                        node.X = (int) (Math.Floor(node.X / _grid.Pitch) * _grid.Pitch);
+                        node.Y = (int) (Math.Floor(node.Y / _grid.Pitch) * _grid.Pitch);
                     }
                 }
         }
@@ -514,6 +530,28 @@ namespace Sandbox
             SetZoom(z);
         }
 
+        public Connection PickConnectionWithText(float x, float y)
+        {
+            var pickedNode = Graph.PickNode(x, y);
+
+            if (pickedNode == null) return null;
+
+            foreach (var output in pickedNode.Outputs)
+            {
+                var s = Font.MeasureString(output.Text);
+                var bound = output.GetBounds();
+                var r = bound.Radius;
+                var twor = 2 * r;
+
+                var outputRect = new Rectangle(bound.X - twor - s.Width, bound.Y - r, s.Width, s.Height);
+                if (!outputRect.Pick(x, y)) continue;
+
+                return output;
+            }
+
+            return null;
+        }
+
         private void Render(object sender, FrameEventArgs e)
         {
             // Start profiling
@@ -521,9 +559,9 @@ namespace Sandbox
 
             // Update sparklines
             if (_profile.ContainsKey("render"))
-                _renderTimeSparkline.Enqueue((float)_profile["render"].TotalMilliseconds);
+                _renderTimeSparkline.Enqueue((float) _profile["render"].TotalMilliseconds);
 
-            _fpsSparkline.Enqueue((float)RenderFrequency);
+            _fpsSparkline.Enqueue((float) RenderFrequency);
 
             // Reset the view
             GL.Clear(ClearBufferMask.ColorBufferBit |
@@ -594,15 +632,15 @@ namespace Sandbox
             {
                 // Static diagnostic header
                 GL.PushMatrix();
-                Font.RenderString($"FPS: {(int)Math.Round(RenderFrequency)}\n" +
-                                  $"Render Time: {(int)_profile["render"].TotalMilliseconds}ms\n" +
+                Font.RenderString($"FPS: {(int) Math.Round(RenderFrequency)}\n" +
+                                  $"Render Time: {(int) _profile["render"].TotalMilliseconds}ms\n" +
                                   $"Zoom: {Zoom}\n" +
                                   $"Nodes: {Graph.Count}", false);
 
                 // Sparklines
-                GL.Translate(5, (int)(Height - Font.Common.LineHeight * 1.4f * 2), 0);
+                GL.Translate(5, (int) (Height - Font.Common.LineHeight * 1.4f * 2), 0);
                 _fpsSparkline.Render(Color.Blue, Color.LimeGreen);
-                GL.Translate(0, (int)(Font.Common.LineHeight * 1.4f), 0);
+                GL.Translate(0, (int) (Font.Common.LineHeight * 1.4f), 0);
                 _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
                 GL.PopMatrix();
             }
@@ -618,41 +656,6 @@ namespace Sandbox
             // Stop profiling and get the results
             _profiler.End();
             _profile = _profiler.Reset();
-        }
-
-        private bool ScreenContains(Node node)
-        {
-            var nodeRect = node.GetBounds();
-            var nodeRectOthers = node.Outputs.Select(connection => connection?.ConnectedNode?.ParentNode?.GetBounds())
-                .Where(rectangle => rectangle != null);
-
-            var screenTopLeft = ScreenToCanvasSpace(Vector2.Zero);
-            var screenBotRight = ScreenToCanvasSpace(new Vector2(Width, Height));
-            var screen = new Rectangle(screenTopLeft.X, screenTopLeft.Y,
-                screenBotRight.X - screenTopLeft.X, screenBotRight.Y - screenTopLeft.Y);
-
-            return nodeRect.Intersects(screen) || nodeRectOthers.Any(node1 => node1.Intersects(screen));
-        }
-
-        public Connection PickConnectionWithText(float x, float y)
-        {
-            var pickedNode = Graph.PickNode(x, y);
-
-            if (pickedNode == null) return null;
-
-            foreach (var output in pickedNode.Outputs)
-            {
-                var s = Font.MeasureString(output.Text);
-                var bound = output.GetBounds();
-                var r = bound.Radius;
-                var twor = 2 * r;
-
-                var outputRect = new Rectangle(bound.X - twor - s.Width, bound.Y - r, s.Width, s.Height);
-                if (!outputRect.Pick(x, y)) continue;
-
-                return output;
-            }
-            return null;
         }
 
         private void RenderConnection(Connection connection, Connection end)
@@ -722,6 +725,7 @@ namespace Sandbox
                 GL.Translate(0, 0, 0.01);
                 GuiHandler.TextBox.RenderForeground();
             }
+
             GL.PopMatrix();
 
             GL.Disable(EnableCap.Texture2D);
@@ -729,9 +733,11 @@ namespace Sandbox
             GL.Color3(Color.DarkSlateGray);
             //Fx.D2.DrawSolidCircle(bound.X, bound.Y, r + 2);
             if (connection.Side == NodeSide.Input)
-                Fx.D2.DrawSolidRoundRectangle(bound.X - r - expansion, bound.Y - r - expansion, twor + 2 * expansion, twor + 2 * expansion, r + expansion, 0, r + expansion, 0);
+                Fx.D2.DrawSolidRoundRectangle(bound.X - r - expansion, bound.Y - r - expansion, twor + 2 * expansion,
+                    twor + 2 * expansion, r + expansion, 0, r + expansion, 0);
             else
-                Fx.D2.DrawSolidRoundRectangle(bound.X - r - expansion, bound.Y - r - expansion, twor + 2 * expansion, twor + 2 * expansion, 0, r + expansion, 0, r + expansion);
+                Fx.D2.DrawSolidRoundRectangle(bound.X - r - expansion, bound.Y - r - expansion, twor + 2 * expansion,
+                    twor + 2 * expansion, 0, r + expansion, 0, r + expansion);
 
             GL.Translate(0, 0, 0.01);
 
@@ -826,7 +832,9 @@ namespace Sandbox
                 return;
 
             if (Zoom >= 0.5)
+            {
                 Font.RenderString(s);
+            }
             else
             {
                 GL.PushAttrib(AttribMask.EnableBit);
@@ -840,14 +848,23 @@ namespace Sandbox
             }
         }
 
+        private bool ScreenContains(Node node)
+        {
+            var nodeRect = node.GetBounds();
+            var nodeRectOthers = node.Outputs.Select(connection => connection?.ConnectedNode?.ParentNode?.GetBounds())
+                .Where(rectangle => rectangle != null);
+
+            var screenTopLeft = ScreenToCanvasSpace(Vector2.Zero);
+            var screenBotRight = ScreenToCanvasSpace(new Vector2(Width, Height));
+            var screen = new Rectangle(screenTopLeft.X, screenTopLeft.Y,
+                screenBotRight.X - screenTopLeft.X, screenBotRight.Y - screenTopLeft.Y);
+
+            return nodeRect.Intersects(screen) || nodeRectOthers.Any(node1 => node1.Intersects(screen));
+        }
+
         public Vector2 ScreenToCanvasSpace(Vector2 input)
         {
             return input / Zoom - _grid.Offset;
-        }
-
-        public Vector2 CanvasToScreenSpace(Vector2 input)
-        {
-            return (input + _grid.Offset) * Zoom;
         }
 
         private void SetZoom(int zoomIdx)
@@ -857,7 +874,7 @@ namespace Sandbox
 
             var size = new Vector2(Width, Height);
             _grid.Offset -= (size / zoomBefore - size / Zoom) / 2;
-            _grid.Offset = new Vector2((int)_grid.Offset.X, (int)_grid.Offset.Y);
+            _grid.Offset = new Vector2((int) _grid.Offset.X, (int) _grid.Offset.Y);
         }
 
         private void Update(object sender, FrameEventArgs e)

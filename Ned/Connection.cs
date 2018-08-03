@@ -7,6 +7,9 @@ namespace Ned
     {
         public readonly Guid Id = Guid.NewGuid();
 
+        private Guid? _cachedLoadingConnection;
+        private string _text;
+
         public NodeSide Side { get; }
         public int ConnectionIndex { get; set; }
 
@@ -24,9 +27,6 @@ namespace Ned
 
         public Node ParentNode { get; set; }
         public Connection ConnectedNode { get; set; }
-
-        private Guid? _cachedLoadingConnection;
-        private string _text;
 
         public Connection(Node parentNode, NodeSide side, int connectionIndex, string text, bool canEditName = true)
         {
@@ -60,15 +60,6 @@ namespace Ned
             CanEditName = other.CanEditName;
         }
 
-        internal void FinishLoading(Graph graph)
-        {
-            ConnectedNode = _cachedLoadingConnection.HasValue
-                ? graph.GetConnection(_cachedLoadingConnection.Value)
-                : null;
-
-            _cachedLoadingConnection = null;
-        }
-
         public void ConnectTo(Connection other)
         {
             if (other.Side == Side || other.ParentNode == ParentNode)
@@ -80,6 +71,21 @@ namespace Ned
                 other.ConnectedNode = this;
         }
 
+        public override bool Equals(object obj)
+        {
+            return obj is Connection connection &&
+                   Id.Equals(connection.Id);
+        }
+
+        internal void FinishLoading(Graph graph)
+        {
+            ConnectedNode = _cachedLoadingConnection.HasValue
+                ? graph.GetConnection(_cachedLoadingConnection.Value)
+                : null;
+
+            _cachedLoadingConnection = null;
+        }
+
         public Circle GetBounds()
         {
             switch (Side)
@@ -87,30 +93,11 @@ namespace Ned
                 case NodeSide.Input:
                     return new Circle(ParentNode.X, ParentNode.Y + (ConnectionIndex + 1) * 20 + 20, 6);
                 case NodeSide.Output:
-                    return new Circle(ParentNode.X + ParentNode.Width, ParentNode.Y + (ConnectionIndex + 1) * 20 + 20, 6);
+                    return new Circle(ParentNode.X + ParentNode.Width, ParentNode.Y + (ConnectionIndex + 1) * 20 + 20,
+                        6);
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-        }
-
-        internal SavedConnection Save()
-        {
-            return new SavedConnection
-            {
-                Side = Side,
-                ConnectedNode = ConnectedNode?.Id,
-                ConnectionIndex = ConnectionIndex,
-                Id = Id,
-                ParentNode = ParentNode.Id,
-                Text = Text,
-                CanEditName = CanEditName
-            };
-        }
-
-        public override bool Equals(object obj)
-        {
-            return obj is Connection connection &&
-                   Id.Equals(connection.Id);
         }
 
         public override int GetHashCode()
@@ -126,6 +113,20 @@ namespace Ned
         public static bool operator !=(Connection connection1, Connection connection2)
         {
             return !(connection1 == connection2);
+        }
+
+        internal SavedConnection Save()
+        {
+            return new SavedConnection
+            {
+                Side = Side,
+                ConnectedNode = ConnectedNode?.Id,
+                ConnectionIndex = ConnectionIndex,
+                Id = Id,
+                ParentNode = ParentNode.Id,
+                Text = Text,
+                CanEditName = CanEditName
+            };
         }
     }
 }

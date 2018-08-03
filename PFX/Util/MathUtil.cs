@@ -7,12 +7,6 @@ namespace PFX.Util
     {
         public const double OneOverGoldenRatio = 0.61803398875;
 
-        public static float EaseOut(float t, float b, float c, float d)
-        {
-            t /= d;
-            return c * t * t * t * t * t + b;
-        }
-
         public static float EaseIn(float t, float b, float c, float d)
         {
             t /= d;
@@ -20,24 +14,10 @@ namespace PFX.Util
             return c * (t * t * t * t * t + 1) + b;
         }
 
-        public static double Fract(double d)
+        public static float EaseOut(float t, float b, float c, float d)
         {
-            return d - Math.Floor(d);
-        }
-
-        public static Vector2d Fract(Vector2d d)
-        {
-            d.X = MathUtil.Fract(d.X);
-            d.Y = MathUtil.Fract(d.Y);
-            return d;
-        }
-
-        public static Vector3d Fract(Vector3d d)
-        {
-            d.X = MathUtil.Fract(d.X);
-            d.Y = MathUtil.Fract(d.Y);
-            d.Z = MathUtil.Fract(d.Z);
-            return d;
+            t /= d;
+            return c * t * t * t * t * t + b;
         }
 
         public static Vector2d Floor(Vector2d vector2)
@@ -53,6 +33,26 @@ namespace PFX.Util
             vector2.Y = (float) Math.Floor(vector2.Y);
             vector2.Z = (float) Math.Floor(vector2.Z);
             return vector2;
+        }
+
+        public static double Fract(double d)
+        {
+            return d - Math.Floor(d);
+        }
+
+        public static Vector2d Fract(Vector2d d)
+        {
+            d.X = Fract(d.X);
+            d.Y = Fract(d.Y);
+            return d;
+        }
+
+        public static Vector3d Fract(Vector3d d)
+        {
+            d.X = Fract(d.X);
+            d.Y = Fract(d.Y);
+            d.Z = Fract(d.Z);
+            return d;
         }
 
         public static double Seed(double d, long seed)

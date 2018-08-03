@@ -1,15 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
-using PFX;
 using PFX.Util;
 using MouseEventArgs = OpenTK.Input.MouseEventArgs;
 using Rectangle = Ned.Rectangle;
@@ -18,12 +13,20 @@ namespace Sandbox
 {
     public class TextBox
     {
+        public enum Direction
+        {
+            Forward,
+            Backward
+        }
+
         private readonly MainWindow _window;
-        private string _text = string.Empty;
         private bool _dragging;
         private bool _selecting;
-        private int _selectionStart = -1;
         private int _selectionEnd = -1;
+        private int _selectionStart = -1;
+        private string _text = string.Empty;
+
+        public EventHandler<EventArgs> Commit;
 
         public Rectangle BoundingBox { get; }
         public int CursorPos { get; set; }
@@ -43,8 +46,6 @@ namespace Sandbox
         public Color BackgroundColor { get; set; }
         public Color ForegroundColor { get; set; }
 
-        public EventHandler<EventArgs> Commit;
-
         public string Text
         {
             get => _text;
@@ -60,115 +61,14 @@ namespace Sandbox
             ForegroundColor = Color.White;
         }
 
-        public void RenderBackground()
-        {
-            GL.PushMatrix();
-            GL.PushAttrib(AttribMask.EnableBit);
-            GL.Disable(EnableCap.Texture2D);
-
-            GL.Color3(ForegroundColor);
-            Fx.D2.DrawSolidRectangle(BoundingBox.X - 1, BoundingBox.Y - 1, BoundingBox.Width + 2, BoundingBox.Height + 2);
-            GL.Translate(0, 0, 0.01);
-            GL.Color3(BackgroundColor);
-            Fx.D2.DrawSolidRectangle(BoundingBox.X, BoundingBox.Y, BoundingBox.Width, BoundingBox.Height);
-
-            if (DateTime.Now.Millisecond <= 500)
-            {
-                var shiftLeft = GetTextShift();
-
-                GL.Translate(BoundingBox.X + 4 - shiftLeft,
-                    BoundingBox.Y + (int)((BoundingBox.Height - _window.Font.Common.LineHeight) / 2f), 0);
-                var size = _window.Font.MeasureString(Text.Substring(0, CursorPos));
-
-                GL.Translate(0, 0, 0.01);
-
-                GL.Color3(ForegroundColor);
-                Fx.D2.DrawSolidRectangle((int)size.Width + 1, 0, 2, _window.Font.Common.LineHeight);
-            }
-
-            GL.PopAttrib();
-            GL.PopMatrix();
-        }
-
-        public void RenderForeground()
-        {
-            GL.PushMatrix();
-            GL.PushAttrib(AttribMask.EnableBit);
-            GL.Enable(EnableCap.Texture2D);
-            var shiftLeft = GetTextShift();
-
-            GL.Enable(EnableCap.ScissorTest);
-
-            var topLeft = new Vector2(BoundingBox.X + 2, BoundingBox.Y + 2);
-            var bottomRight = topLeft + new Vector2(BoundingBox.Width - 4, BoundingBox.Height - 4);
-
-            topLeft = _window.CanvasToScreenSpace(topLeft);
-            bottomRight = _window.CanvasToScreenSpace(bottomRight);
-
-            bottomRight -= topLeft;
-
-            Fx.Util.Scissor(_window, (int)topLeft.X, (int)topLeft.Y, (int)bottomRight.X, (int)bottomRight.Y);
-            GL.Translate(BoundingBox.X + 4 - shiftLeft,
-                BoundingBox.Y + (int)((BoundingBox.Height - _window.Font.Common.LineHeight) / 2f), 0.01);
-            DrawForegroundText(Text);
-            GL.PopAttrib();
-            GL.PopMatrix();
-        }
-
-        private void DrawForegroundText(string s)
-        {
-            GL.Color3(ForegroundColor);
-
-            if (SelectionStart == -1 || SelectionEnd == -1)
-                _window.Font.RenderString(s);
-            else
-            {
-                var selWidth =
-                    _window.Font.MeasureString(Text.Substring(SelectionStart, SelectionEnd - SelectionStart)).Width;
-
-                GL.Color3(Color.DodgerBlue);
-                GL.Disable(EnableCap.Texture2D);
-                Fx.D2.DrawSolidRectangle(_window.Font.MeasureString(Text.Substring(0, SelectionStart)).Width, 0, selWidth, _window.Font.Common.LineHeight);
-
-                GL.Translate(0, 0, 0.01);
-
-                GL.Color3(ForegroundColor);
-                GL.Enable(EnableCap.Texture2D);
-                _window.Font.RenderString(s);
-            }
-        }
-
-        private int GetTextShift()
-        {
-            var textSize = _window.Font.MeasureString(Text.Substring(0, CursorPos));
-            var shiftLeft = 0;
-
-            var width = BoundingBox.Width - 10;
-
-            if (textSize.Width >= width)
-                shiftLeft = (int)(textSize.Width - width);
-            return shiftLeft + 1;
-        }
-
-        public void OnCharacter(char c)
-        {
-            Insert(c.ToString());
-        }
-
-        private void Insert(string c)
-        {
-            c = c.Replace("\r", "").Replace("\n", "");
-            Text = Text.Substring(0, CursorPos) + c + Text.Substring(CursorPos, Text.Length - CursorPos);
-            CursorPos += c.Length;
-        }
-
         private void DeleteCharacter(Direction direction)
         {
             switch (direction)
             {
                 case Direction.Forward:
                     if (CursorPos != Text.Length)
-                        Text = Text.Substring(0, CursorPos) + Text.Substring(CursorPos + 1, Text.Length - CursorPos - 1);
+                        Text = Text.Substring(0, CursorPos) +
+                               Text.Substring(CursorPos + 1, Text.Length - CursorPos - 1);
                     break;
                 case Direction.Backward:
                     if (CursorPos != 0)
@@ -176,44 +76,36 @@ namespace Sandbox
                         Text = Text.Substring(0, CursorPos - 1) + Text.Substring(CursorPos, Text.Length - CursorPos);
                         CursorPos--;
                     }
+
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
             }
         }
 
-        public void OnMouseDown(MouseEventArgs m)
+        private void DrawForegroundText(string s)
         {
-            SelectionStart = SelectionEnd = -1;
+            GL.Color3(ForegroundColor);
 
-            var mouseLateral = _window.ScreenToCanvasSpace(new Vector2(m.X, m.Y)).X - BoundingBox.X;
-            CursorPos = GetTextIndex(mouseLateral) - 1;
-
-            _dragging = true;
-        }
-
-        public void OnMouseUp(MouseEventArgs m)
-        {
-            _dragging = false;
-            _selecting = false;
-        }
-
-        public void OnMouseMove(MouseMoveEventArgs m)
-        {
-            //            if (_dragging && !_selecting)
-            //            {
-            //                _selecting = true;
-            //                SelectionStart = CursorPos;
-            //            }
-
-            if (_selecting)
+            if (SelectionStart == -1 || SelectionEnd == -1)
             {
-                var mouseLateral = _window.ScreenToCanvasSpace(new Vector2(m.X, m.Y)).X - BoundingBox.X;
-                var selectionEndIdx = GetTextIndex(mouseLateral) - 1;
+                _window.Font.RenderString(s);
+            }
+            else
+            {
+                var selWidth =
+                    _window.Font.MeasureString(Text.Substring(SelectionStart, SelectionEnd - SelectionStart)).Width;
 
-                SelectionEnd = selectionEndIdx;
+                GL.Color3(Color.DodgerBlue);
+                GL.Disable(EnableCap.Texture2D);
+                Fx.D2.DrawSolidRectangle(_window.Font.MeasureString(Text.Substring(0, SelectionStart)).Width, 0,
+                    selWidth, _window.Font.Common.LineHeight);
 
-                CursorPos = selectionEndIdx;
+                GL.Translate(0, 0, 0.01);
+
+                GL.Color3(ForegroundColor);
+                GL.Enable(EnableCap.Texture2D);
+                _window.Font.RenderString(s);
             }
         }
 
@@ -228,6 +120,35 @@ namespace Sandbox
             }
 
             return Text.Length;
+        }
+
+        private int GetTextShift()
+        {
+            var textSize = _window.Font.MeasureString(Text.Substring(0, CursorPos));
+            var shiftLeft = 0;
+
+            var width = BoundingBox.Width - 10;
+
+            if (textSize.Width >= width)
+                shiftLeft = (int) (textSize.Width - width);
+            return shiftLeft + 1;
+        }
+
+        private void Insert(string c)
+        {
+            c = c.Replace("\r", "").Replace("\n", "");
+            Text = Text.Substring(0, CursorPos) + c + Text.Substring(CursorPos, Text.Length - CursorPos);
+            CursorPos += c.Length;
+        }
+
+        public void InvokeCommit()
+        {
+            Commit?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void OnCharacter(char c)
+        {
+            Insert(c.ToString());
         }
 
         public void OnKey(KeyboardKeyEventArgs k)
@@ -261,7 +182,7 @@ namespace Sandbox
                     {
                         var text = "";
                         var staThread = new Thread(
-                            delegate ()
+                            delegate()
                             {
                                 try
                                 {
@@ -277,21 +198,102 @@ namespace Sandbox
                         staThread.Join();
                         Insert(text);
                     }
+
                     break;
                 default:
                     break;
             }
         }
 
-        public void InvokeCommit()
+        public void OnMouseDown(MouseEventArgs m)
         {
-            Commit?.Invoke(this, EventArgs.Empty);
+            SelectionStart = SelectionEnd = -1;
+
+            var mouseLateral = _window.ScreenToCanvasSpace(new Vector2(m.X, m.Y)).X - BoundingBox.X;
+            CursorPos = GetTextIndex(mouseLateral) - 1;
+
+            _dragging = true;
         }
 
-        public enum Direction
+        public void OnMouseMove(MouseMoveEventArgs m)
         {
-            Forward,
-            Backward
+            //            if (_dragging && !_selecting)
+            //            {
+            //                _selecting = true;
+            //                SelectionStart = CursorPos;
+            //            }
+
+            if (_selecting)
+            {
+                var mouseLateral = _window.ScreenToCanvasSpace(new Vector2(m.X, m.Y)).X - BoundingBox.X;
+                var selectionEndIdx = GetTextIndex(mouseLateral) - 1;
+
+                SelectionEnd = selectionEndIdx;
+
+                CursorPos = selectionEndIdx;
+            }
+        }
+
+        public void OnMouseUp(MouseEventArgs m)
+        {
+            _dragging = false;
+            _selecting = false;
+        }
+
+        public void RenderBackground()
+        {
+            GL.PushMatrix();
+            GL.PushAttrib(AttribMask.EnableBit);
+            GL.Disable(EnableCap.Texture2D);
+
+            GL.Color3(ForegroundColor);
+            Fx.D2.DrawSolidRectangle(BoundingBox.X - 1, BoundingBox.Y - 1, BoundingBox.Width + 2,
+                BoundingBox.Height + 2);
+            GL.Translate(0, 0, 0.01);
+            GL.Color3(BackgroundColor);
+            Fx.D2.DrawSolidRectangle(BoundingBox.X, BoundingBox.Y, BoundingBox.Width, BoundingBox.Height);
+
+            if (DateTime.Now.Millisecond <= 500)
+            {
+                var shiftLeft = GetTextShift();
+
+                GL.Translate(BoundingBox.X + 4 - shiftLeft,
+                    BoundingBox.Y + (int) ((BoundingBox.Height - _window.Font.Common.LineHeight) / 2f), 0);
+                var size = _window.Font.MeasureString(Text.Substring(0, CursorPos));
+
+                GL.Translate(0, 0, 0.01);
+
+                GL.Color3(ForegroundColor);
+                Fx.D2.DrawSolidRectangle((int) size.Width + 1, 0, 2, _window.Font.Common.LineHeight);
+            }
+
+            GL.PopAttrib();
+            GL.PopMatrix();
+        }
+
+        public void RenderForeground()
+        {
+            GL.PushMatrix();
+            GL.PushAttrib(AttribMask.EnableBit);
+            GL.Enable(EnableCap.Texture2D);
+            var shiftLeft = GetTextShift();
+
+            GL.Enable(EnableCap.ScissorTest);
+
+            var topLeft = new Vector2(BoundingBox.X + 2, BoundingBox.Y + 2);
+            var bottomRight = topLeft + new Vector2(BoundingBox.Width - 4, BoundingBox.Height - 4);
+
+            topLeft = _window.CanvasToScreenSpace(topLeft);
+            bottomRight = _window.CanvasToScreenSpace(bottomRight);
+
+            bottomRight -= topLeft;
+
+            Fx.Util.Scissor(_window, (int) topLeft.X, (int) topLeft.Y, (int) bottomRight.X, (int) bottomRight.Y);
+            GL.Translate(BoundingBox.X + 4 - shiftLeft,
+                BoundingBox.Y + (int) ((BoundingBox.Height - _window.Font.Common.LineHeight) / 2f), 0.01);
+            DrawForegroundText(Text);
+            GL.PopAttrib();
+            GL.PopMatrix();
         }
     }
 }

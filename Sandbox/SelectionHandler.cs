@@ -15,46 +15,13 @@ namespace Sandbox
 
         public Rectangle SelectionRectangle;
 
-        public SelectionHandler(MainWindow window)
-        {
-            _window = window;
-        }
-
         public Node SingleSelectedNode => SelectedNodes.Count == 1 ? SelectedNodes[0] : null;
         public bool IsClipboardEmpty => _copiedNodes.Count == 0;
         public bool OneOrNoneSelected => SelectedNodes.Count <= 1;
 
-        public void Select(Graph graph, SelectionMode mode)
+        public SelectionHandler(MainWindow window)
         {
-            switch (mode)
-            {
-                case SelectionMode.Normal:
-                    SelectedNodes.Clear();
-                    SelectedNodes.AddRange(graph.Where(node => SelectionRectangle.Intersects(node.GetBounds())));
-                    break;
-                case SelectionMode.Additive:
-                    SelectedNodes.AddRange(graph.Where(node => SelectionRectangle.Intersects(node.GetBounds())));
-                    break;
-                case SelectionMode.Subtractive:
-                    SelectedNodes.RemoveAll(node => SelectionRectangle.Intersects(node.GetBounds()));
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
-            }
-        }
-
-        public void Select(Node node)
-        {
-            SelectedNodes.Clear();
-            SelectedNodes.Add(node);
-        }
-
-        public void Delete()
-        {
-            var nodes = _window.Graph.Where(node => SelectedNodes.Contains(node) && node.NodeInfo.CanEditNode)
-                .ToList();
-            foreach (var node in nodes)
-                _window.Graph.Remove(node);
+            _window = window;
         }
 
         public void Copy()
@@ -85,6 +52,14 @@ namespace Sandbox
             Delete();
         }
 
+        public void Delete()
+        {
+            var nodes = _window.Graph.Where(node => SelectedNodes.Contains(node) && node.NodeInfo.CanEditNode)
+                .ToList();
+            foreach (var node in nodes)
+                _window.Graph.Remove(node);
+        }
+
         public void Paste(float x, float y, bool snap, float snapPitch)
         {
             var v = new Vector2(x, y);
@@ -105,6 +80,31 @@ namespace Sandbox
 
                 _window.Graph.Add(new Node(copiedNode));
             }
+        }
+
+        public void Select(Graph graph, SelectionMode mode)
+        {
+            switch (mode)
+            {
+                case SelectionMode.Normal:
+                    SelectedNodes.Clear();
+                    SelectedNodes.AddRange(graph.Where(node => SelectionRectangle.Intersects(node.GetBounds())));
+                    break;
+                case SelectionMode.Additive:
+                    SelectedNodes.AddRange(graph.Where(node => SelectionRectangle.Intersects(node.GetBounds())));
+                    break;
+                case SelectionMode.Subtractive:
+                    SelectedNodes.RemoveAll(node => SelectionRectangle.Intersects(node.GetBounds()));
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
+            }
+        }
+
+        public void Select(Node node)
+        {
+            SelectedNodes.Clear();
+            SelectedNodes.Add(node);
         }
     }
 }

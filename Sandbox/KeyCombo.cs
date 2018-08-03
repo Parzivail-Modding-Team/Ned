@@ -28,20 +28,6 @@ namespace Sandbox
             Shift = kkea.Shift;
         }
 
-        public override string ToString()
-        {
-            var terms = new List<string>();
-            if (Control)
-                terms.Add("CTRL");
-            if (Alt)
-                terms.Add("ALT");
-            if (Shift)
-                terms.Add("Shift");
-            terms.Add(Key.ToString());
-
-            return $"{Name} ({string.Join("+", terms)})";
-        }
-
         public override bool Equals(object obj)
         {
             var combo = obj as KeyCombo;
@@ -70,6 +56,20 @@ namespace Sandbox
         public static bool operator !=(KeyCombo combo1, KeyCombo combo2)
         {
             return !(combo1 == combo2);
+        }
+
+        public override string ToString()
+        {
+            var terms = new List<string>();
+            if (Control)
+                terms.Add("CTRL");
+            if (Alt)
+                terms.Add("ALT");
+            if (Shift)
+                terms.Add("Shift");
+            terms.Add(Key.ToString());
+
+            return $"{Name} ({string.Join("+", terms)})";
         }
     }
 }

@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Ned
 {
@@ -23,12 +19,13 @@ namespace Ned
 
         public bool Pick(float x, float y)
         {
-            return x > Math.Min(X, X + Width) && x < Math.Max(X, X + Width) && y > Math.Min(Y, Y + Height) && y < Math.Max(Y, Y + Height);
+            return x > Math.Min(X, X + Width) && x < Math.Max(X, X + Width) && y > Math.Min(Y, Y + Height) &&
+                   y < Math.Max(Y, Y + Height);
         }
 
         public bool Intersects(Rectangle other)
         {
-            return Math.Max(other.X, other.X + other.Width) > Math.Min(X, X + Width) && 
+            return Math.Max(other.X, other.X + other.Width) > Math.Min(X, X + Width) &&
                    Math.Min(other.X, other.X + other.Width) < Math.Max(X, X + Width) &&
                    Math.Max(other.Y, other.Y + other.Height) > Math.Min(Y, Y + Height) &&
                    Math.Min(other.Y, other.Y + other.Height) < Math.Max(Y, Y + Height);

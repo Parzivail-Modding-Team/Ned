@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 
@@ -8,21 +7,21 @@ namespace PFX.Util
 {
     public class SimpleVertexBuffer
     {
-        private List<Vector2> _texcoords = new List<Vector2>();
+        private List<int> _colors = new List<int>();
         private List<int> _indices = new List<int>();
         private List<Vector3> _normals = new List<Vector3>();
+        private List<Vector2> _texcoords = new List<Vector2>();
         private List<Vector3> _vertices = new List<Vector3>();
-        private List<int> _colors = new List<int>();
-
-        public int UvBufferId;
+        public int BinormalBufferId;
         public int ColorBufferId;
         public int ElementBufferId;
         public int NormalBufferId;
-        public int TangentBufferId;
-        public int BinormalBufferId;
-        public int VertexBufferId;
 
         public int NumElements;
+        public int TangentBufferId;
+
+        public int UvBufferId;
+        public int VertexBufferId;
 
         public void AddVertex(Vector3 pos)
         {
@@ -48,9 +47,57 @@ namespace PFX.Util
             _indices.Add(_indices.Count);
         }
 
+        public void BindAttribs(int vertexBufferAttribName = -1, int uvBufferAttribName = -1,
+            int colorBufferAttribName = -1, int normalBufferAttribName = -1, int tangentBufferAttribName = -1,
+            int binormalBufferAttribName = -1)
+        {
+            if (vertexBufferAttribName != -1)
+            {
+                GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferId);
+                GL.VertexAttribPointer(vertexBufferAttribName, 3, VertexAttribPointerType.Float,
+                    false, 0, 0);
+            }
+
+            if (uvBufferAttribName != -1)
+            {
+                GL.BindBuffer(BufferTarget.ArrayBuffer, UvBufferId);
+                GL.VertexAttribPointer(uvBufferAttribName, 2, VertexAttribPointerType.Float,
+                    false, 0, 0);
+            }
+
+            if (normalBufferAttribName != -1)
+            {
+                GL.BindBuffer(BufferTarget.ArrayBuffer, NormalBufferId);
+                GL.VertexAttribPointer(normalBufferAttribName, 3, VertexAttribPointerType.Float,
+                    false, 0, 0);
+            }
+
+            if (colorBufferAttribName != -1)
+            {
+                GL.BindBuffer(BufferTarget.ArrayBuffer, NormalBufferId);
+                GL.VertexAttribPointer(colorBufferAttribName, 3, VertexAttribPointerType.Int,
+                    false, 0, 0);
+            }
+
+            if (tangentBufferAttribName != -1)
+            {
+                GL.BindBuffer(BufferTarget.ArrayBuffer, NormalBufferId);
+                GL.VertexAttribPointer(tangentBufferAttribName, 3, VertexAttribPointerType.Float,
+                    false, 0, 0);
+            }
+
+            if (binormalBufferAttribName != -1)
+            {
+                GL.BindBuffer(BufferTarget.ArrayBuffer, NormalBufferId);
+                GL.VertexAttribPointer(binormalBufferAttribName, 3, VertexAttribPointerType.Float,
+                    false, 0, 0);
+            }
+        }
+
         public void InitializeVbo()
         {
-            InitializeVbo(_vertices.ToArray(), _normals.ToArray(), _texcoords.ToArray(), _colors.ToArray(), _indices.ToArray());
+            InitializeVbo(_vertices.ToArray(), _normals.ToArray(), _texcoords.ToArray(), _colors.ToArray(),
+                _indices.ToArray());
             _vertices.Clear();
             _normals.Clear();
             _colors.Clear();
@@ -68,7 +115,8 @@ namespace PFX.Util
             InitializeVbo();
         }
 
-        public void InitializeVbo(Vector3[] vertices, Vector3[] vertexNormals, Vector2[] vertexUVs, int[] colors, int[] indices)
+        public void InitializeVbo(Vector3[] vertices, Vector3[] vertexNormals, Vector2[] vertexUVs, int[] colors,
+            int[] indices)
         {
             if (vertices == null) return;
             if (indices == null) return;
@@ -108,7 +156,8 @@ namespace PFX.Util
                     var t2 = w3.Y - w1.Y;
 
                     var coef = 1 / (s1 * t1 - s2 * t2);
-                    var tangent = new Vector3(coef * ((x1 * t2) + (x2 * -t1)), coef * ((y1 * t2) + (y2 * -t1)), coef * ((z1 * t2) + (z2 * -t1)));
+                    var tangent = new Vector3(coef * (x1 * t2 + x2 * -t1), coef * (y1 * t2 + y2 * -t1),
+                        coef * (z1 * t2 + z2 * -t1));
 
                     tangents[a + 0] = tangent;
                     tangents[a + 1] = tangent;
@@ -132,7 +181,8 @@ namespace PFX.Util
                     GL.BindBuffer(BufferTarget.ArrayBuffer, UvBufferId);
 
                     // Send data to buffer
-                    GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(vertexUVs.Length * Vector2.SizeInBytes), vertexUVs,
+                    GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr) (vertexUVs.Length * Vector2.SizeInBytes),
+                        vertexUVs,
                         BufferUsageHint.StaticDraw);
 
                     // Validate that the buffer is the correct size
@@ -154,7 +204,7 @@ namespace PFX.Util
                     GL.BindBuffer(BufferTarget.ArrayBuffer, NormalBufferId);
 
                     // Send data to buffer
-                    GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(vertexNormals.Length * Vector3.SizeInBytes),
+                    GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr) (vertexNormals.Length * Vector3.SizeInBytes),
                         vertexNormals, BufferUsageHint.StaticDraw);
 
                     // Validate that the buffer is the correct size
@@ -176,7 +226,7 @@ namespace PFX.Util
                     GL.BindBuffer(BufferTarget.ArrayBuffer, TangentBufferId);
 
                     // Send data to buffer
-                    GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(tangents.Length * Vector3.SizeInBytes),
+                    GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr) (tangents.Length * Vector3.SizeInBytes),
                         tangents, BufferUsageHint.StaticDraw);
 
                     // Validate that the buffer is the correct size
@@ -198,7 +248,7 @@ namespace PFX.Util
                     GL.BindBuffer(BufferTarget.ArrayBuffer, BinormalBufferId);
 
                     // Send data to buffer
-                    GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(binormals.Length * Vector3.SizeInBytes),
+                    GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr) (binormals.Length * Vector3.SizeInBytes),
                         binormals, BufferUsageHint.StaticDraw);
 
                     // Validate that the buffer is the correct size
@@ -219,7 +269,7 @@ namespace PFX.Util
                     GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferId);
 
                     // Send data to buffer
-                    GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(vertices.Length * Vector3.SizeInBytes), vertices,
+                    GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr) (vertices.Length * Vector3.SizeInBytes), vertices,
                         BufferUsageHint.DynamicDraw);
 
                     // Validate that the buffer is the correct size
@@ -240,7 +290,7 @@ namespace PFX.Util
                     GL.BindBuffer(BufferTarget.ArrayBuffer, ColorBufferId);
 
                     // Send data to buffer
-                    GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(colors.Length * sizeof(int)), colors,
+                    GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr) (colors.Length * sizeof(int)), colors,
                         BufferUsageHint.DynamicDraw);
 
                     // Validate that the buffer is the correct size
@@ -261,7 +311,7 @@ namespace PFX.Util
                     GL.BindBuffer(BufferTarget.ElementArrayBuffer, ElementBufferId);
 
                     // Send data to buffer
-                    GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(indices.Length * sizeof(int)), indices,
+                    GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr) (indices.Length * sizeof(int)), indices,
                         BufferUsageHint.StreamDraw);
 
                     // Validate that the buffer is the correct size
@@ -356,51 +406,6 @@ namespace PFX.Util
 
             // Restore the state
             GL.PopClientAttrib();
-        }
-
-        public void BindAttribs(int vertexBufferAttribName = -1, int uvBufferAttribName = -1, int colorBufferAttribName = -1, int normalBufferAttribName = -1, int tangentBufferAttribName = -1, int binormalBufferAttribName = -1)
-        {
-            if (vertexBufferAttribName != -1)
-            {
-                GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferId);
-                GL.VertexAttribPointer(vertexBufferAttribName, 3, VertexAttribPointerType.Float,
-                    false, 0, 0);
-            }
-
-            if (uvBufferAttribName != -1)
-            {
-                GL.BindBuffer(BufferTarget.ArrayBuffer, UvBufferId);
-                GL.VertexAttribPointer(uvBufferAttribName, 2, VertexAttribPointerType.Float,
-                    false, 0, 0);
-            }
-
-            if (normalBufferAttribName != -1)
-            {
-                GL.BindBuffer(BufferTarget.ArrayBuffer, NormalBufferId);
-                GL.VertexAttribPointer(normalBufferAttribName, 3, VertexAttribPointerType.Float,
-                    false, 0, 0);
-            }
-
-            if (colorBufferAttribName != -1)
-            {
-                GL.BindBuffer(BufferTarget.ArrayBuffer, NormalBufferId);
-                GL.VertexAttribPointer(colorBufferAttribName, 3, VertexAttribPointerType.Int,
-                    false, 0, 0);
-            }
-
-            if (tangentBufferAttribName != -1)
-            {
-                GL.BindBuffer(BufferTarget.ArrayBuffer, NormalBufferId);
-                GL.VertexAttribPointer(tangentBufferAttribName, 3, VertexAttribPointerType.Float,
-                    false, 0, 0);
-            }
-
-            if (binormalBufferAttribName != -1)
-            {
-                GL.BindBuffer(BufferTarget.ArrayBuffer, NormalBufferId);
-                GL.VertexAttribPointer(binormalBufferAttribName, 3, VertexAttribPointerType.Float,
-                    false, 0, 0);
-            }
         }
     }
 }

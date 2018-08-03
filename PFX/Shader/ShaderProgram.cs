@@ -17,19 +17,51 @@ namespace PFX.Shader
             CacheLoc = new Dictionary<string, int>();
         }
 
+        private int GetCachedUniformLoc(string uniformName)
+        {
+            if (!CacheLoc.ContainsKey(uniformName))
+                CacheLoc.Add(uniformName, GL.GetUniformLocation(PgmId, uniformName));
+            return CacheLoc[uniformName];
+        }
+
+        public int GetFsId()
+        {
+            return FsId;
+        }
+
+        public int GetId()
+        {
+            return PgmId;
+        }
+
+        public int GetVsId()
+        {
+            return VsId;
+        }
+
+        protected abstract void Init();
+
         public void InitProgram()
         {
             PgmId = GL.CreateProgram();
             Init();
         }
 
-        public void Use(IEnumerable<Uniform> uniforms)
+        protected void LoadShader(string source, ShaderType type, int program, out int address)
         {
-            GL.UseProgram(PgmId);
-            SetupUniforms(uniforms);
+            address = GL.CreateShader(type);
+            GL.ShaderSource(address, source);
+            GL.CompileShader(address);
+            GL.AttachShader(program, address);
+            Log(GL.GetShaderInfoLog(address));
         }
 
-        protected abstract void Init();
+        protected void Log(string msg)
+        {
+            msg = msg.Trim();
+            if (msg.Length > 0)
+                Lumberjack.WriteLine(msg, ConsoleColor.DarkYellow, OutputLevel.Debug, "GLSL");
+        }
 
         protected virtual void SetupUniforms(IEnumerable<Uniform> uniforms)
         {
@@ -85,42 +117,10 @@ namespace PFX.Shader
             }
         }
 
-        private int GetCachedUniformLoc(string uniformName)
+        public void Use(IEnumerable<Uniform> uniforms)
         {
-            if (!CacheLoc.ContainsKey(uniformName))
-                CacheLoc.Add(uniformName, GL.GetUniformLocation(PgmId, uniformName));
-            return CacheLoc[uniformName];
-        }
-
-        protected void LoadShader(string source, ShaderType type, int program, out int address)
-        {
-            address = GL.CreateShader(type);
-            GL.ShaderSource(address, source);
-            GL.CompileShader(address);
-            GL.AttachShader(program, address);
-            Log(GL.GetShaderInfoLog(address));
-        }
-
-        protected void Log(string msg)
-        {
-            msg = msg.Trim();
-            if (msg.Length > 0)
-                Lumberjack.WriteLine(msg, ConsoleColor.DarkYellow, OutputLevel.Debug, "GLSL");
-        }
-
-        public int GetId()
-        {
-            return PgmId;
-        }
-
-        public int GetVsId()
-        {
-            return VsId;
-        }
-
-        public int GetFsId()
-        {
-            return FsId;
+            GL.UseProgram(PgmId);
+            SetupUniforms(uniforms);
         }
     }
 }

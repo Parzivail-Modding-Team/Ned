@@ -83,6 +83,11 @@ namespace Sandbox
         private static int _index;
         private static int _indexTimer;
 
+        public static void Release()
+        {
+            GL.Disable(EnableCap.PolygonStipple);
+        }
+
         public static void Update()
         {
             if (_indexTimer++ < 1)
@@ -96,11 +101,6 @@ namespace Sandbox
         {
             GL.Enable(EnableCap.PolygonStipple);
             GL.PolygonStipple(Pattern[_index]);
-        }
-
-        public static void Release()
-        {
-            GL.Disable(EnableCap.PolygonStipple);
         }
     }
 }

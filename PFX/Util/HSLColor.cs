@@ -12,6 +12,24 @@ namespace PFX.Util
         private double _luminosity = 1.0;
         private double _saturation = 1.0;
 
+        public double Hue
+        {
+            get => _hue * Scale;
+            set => _hue = CheckRange(value / Scale);
+        }
+
+        public double Saturation
+        {
+            get => _saturation * Scale;
+            set => _saturation = CheckRange(value / Scale);
+        }
+
+        public double Brightness
+        {
+            get => _luminosity * Scale;
+            set => _luminosity = CheckRange(value / Scale);
+        }
+
         public HslColor()
         {
         }
@@ -33,24 +51,6 @@ namespace PFX.Util
             Brightness = brightness;
         }
 
-        public double Hue
-        {
-            get => _hue * Scale;
-            set => _hue = CheckRange(value / Scale);
-        }
-
-        public double Saturation
-        {
-            get => _saturation * Scale;
-            set => _saturation = CheckRange(value / Scale);
-        }
-
-        public double Brightness
-        {
-            get => _luminosity * Scale;
-            set => _luminosity = CheckRange(value / Scale);
-        }
-
         private static double CheckRange(double value)
         {
             if (value < 0.0)
@@ -60,9 +60,12 @@ namespace PFX.Util
             return value;
         }
 
-        public override string ToString()
+        public void SetRgb(int red, int green, int blue)
         {
-            return $"H: {Hue:#0.##} S: {Saturation:#0.##} L: {Brightness:#0.##}";
+            HslColor hslColor = Color.FromArgb(red, green, blue);
+            _hue = hslColor._hue;
+            _saturation = hslColor._saturation;
+            _luminosity = hslColor._luminosity;
         }
 
         public string ToRgbString()
@@ -71,12 +74,9 @@ namespace PFX.Util
             return $"R: {color.R:#0.##} G: {color.G:#0.##} B: {color.B:#0.##}";
         }
 
-        public void SetRgb(int red, int green, int blue)
+        public override string ToString()
         {
-            HslColor hslColor = Color.FromArgb(red, green, blue);
-            _hue = hslColor._hue;
-            _saturation = hslColor._saturation;
-            _luminosity = hslColor._luminosity;
+            return $"H: {Hue:#0.##} S: {Saturation:#0.##} L: {Brightness:#0.##}";
         }
 
         #region Casts to/from System.Drawing.Color

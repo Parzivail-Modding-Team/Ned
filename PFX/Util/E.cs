@@ -14,6 +14,18 @@ namespace PFX.Util
         public static readonly Random Rand = new Random();
 
         /// <summary>
+        ///     Clamps a float between two values
+        /// </summary>
+        /// <param name="v">The value to clamp</param>
+        /// <param name="min">The inclusive lower bound</param>
+        /// <param name="max">The inclusive upper bound</param>
+        /// <returns>The clamped float</returns>
+        public static float Clamp(this float v, float min, float max)
+        {
+            return Math.Max(Math.Min(max, v), min);
+        }
+
+        /// <summary>
         ///     Color creator wrapper for hex colors
         /// </summary>
         /// <param name="hex">The color hex</param>
@@ -24,28 +36,34 @@ namespace PFX.Util
         }
 
         /// <summary>
-        ///     Picks a list object at (seeded) random
+        ///     Loads a bitmap into OpenGL
         /// </summary>
-        /// <typeparam name="T">The type of haystack</typeparam>
-        /// <param name="haystack">The list to pick from</param>
-        /// <param name="random">The random float (0-1 inclusive) component</param>
-        /// <returns>The list object at (random * listLength)</returns>
-        public static T Random<T>(this IEnumerable<T> haystack, float random)
+        /// <param name="bitmap"></param>
+        /// <returns></returns>
+        public static KeyValuePair<int, Bitmap> LoadGlTexture(this Bitmap bitmap)
         {
-            var l = haystack.ToList();
-            return l[(int) (random * (l.Count - 1))];
-        }
+            GL.Hint(HintTarget.PerspectiveCorrectionHint, HintMode.Nicest);
 
-        /// <summary>
-        ///     Uppercases the first letter in a string, for a sentence.
-        /// </summary>
-        /// <param name="s">The string to operate on</param>
-        /// <returns>A string whose first letter is uppercase</returns>
-        public static string UpperFirst(this string s)
-        {
-            if (s.Length < 2)
-                return s.ToUpperInvariant();
-            return s[0].ToString().ToUpperInvariant() + s.Substring(1);
+            GL.GenTextures(1, out int tex);
+            GL.BindTexture(TextureTarget.Texture2D, tex);
+
+            var data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, data.Width, data.Height, 0,
+                OpenTK.Graphics.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, data.Scan0);
+            bitmap.UnlockBits(data);
+
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
+                (int) TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
+                (int) TextureMagFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
+                (int) TextureWrapMode.ClampToEdge);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
+                (int) TextureWrapMode.ClampToEdge);
+
+            return new KeyValuePair<int, Bitmap>(tex, bitmap);
         }
 
         /// <summary>
@@ -77,15 +95,16 @@ namespace PFX.Util
         }
 
         /// <summary>
-        ///     Clamps a float between two values
+        ///     Picks a list object at (seeded) random
         /// </summary>
-        /// <param name="v">The value to clamp</param>
-        /// <param name="min">The inclusive lower bound</param>
-        /// <param name="max">The inclusive upper bound</param>
-        /// <returns>The clamped float</returns>
-        public static float Clamp(this float v, float min, float max)
+        /// <typeparam name="T">The type of haystack</typeparam>
+        /// <param name="haystack">The list to pick from</param>
+        /// <param name="random">The random float (0-1 inclusive) component</param>
+        /// <returns>The list object at (random * listLength)</returns>
+        public static T Random<T>(this IEnumerable<T> haystack, float random)
         {
-            return Math.Max(Math.Min(max, v), min);
+            var l = haystack.ToList();
+            return l[(int) (random * (l.Count - 1))];
         }
 
         /// <summary>
@@ -138,34 +157,15 @@ namespace PFX.Util
         }
 
         /// <summary>
-        ///     Loads a bitmap into OpenGL
+        ///     Uppercases the first letter in a string, for a sentence.
         /// </summary>
-        /// <param name="bitmap"></param>
-        /// <returns></returns>
-        public static KeyValuePair<int, Bitmap> LoadGlTexture(this Bitmap bitmap)
+        /// <param name="s">The string to operate on</param>
+        /// <returns>A string whose first letter is uppercase</returns>
+        public static string UpperFirst(this string s)
         {
-            GL.Hint(HintTarget.PerspectiveCorrectionHint, HintMode.Nicest);
-
-            GL.GenTextures(1, out int tex);
-            GL.BindTexture(TextureTarget.Texture2D, tex);
-
-            var data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
-                ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, data.Width, data.Height, 0,
-                OpenTK.Graphics.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, data.Scan0);
-            bitmap.UnlockBits(data);
-
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                (int) TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-                (int) TextureMagFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
-                (int) TextureWrapMode.ClampToEdge);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
-                (int) TextureWrapMode.ClampToEdge);
-
-            return new KeyValuePair<int, Bitmap>(tex, bitmap);
+            if (s.Length < 2)
+                return s.ToUpperInvariant();
+            return s[0].ToString().ToUpperInvariant() + s.Substring(1);
         }
     }
 }

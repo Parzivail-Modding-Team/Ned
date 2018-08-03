@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 
 namespace Ned
 {
@@ -12,6 +9,8 @@ namespace Ned
         public static Func<Node, int> WidthCalculator = node => 200;
 
         public readonly Guid Id = Guid.NewGuid();
+
+        private SavedNode _cachedLoadingNode;
 
         public Connection Input { get; set; }
         public List<Connection> Outputs { get; set; }
@@ -24,8 +23,6 @@ namespace Ned
 
         public float Width { get; private set; } = 90;
         public float Height => (Math.Max(Outputs.Count, 1) + 1) * 20 + 20;
-
-        private SavedNode _cachedLoadingNode;
 
         internal Node(SavedNode node)
         {
@@ -68,6 +65,25 @@ namespace Ned
             RecalculateWidth();
         }
 
+        internal void AddOutput(string text)
+        {
+            if (!NodeInfo.CanEditConnectors) return;
+            Outputs.Add(new Connection(this, NodeSide.Output, Outputs.Count, text));
+            RecalculateWidth();
+        }
+
+        public void BuildConnections()
+        {
+            for (var i = 0; i < Outputs.Count; i++)
+                Outputs[i].ConnectionIndex = i;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Node node &&
+                   Id.Equals(node.Id);
+        }
+
         internal void FinishLoading(Graph graph)
         {
             if (_cachedLoadingNode.Input != null)
@@ -79,6 +95,16 @@ namespace Ned
             RecalculateWidth();
         }
 
+        public Rectangle GetBounds()
+        {
+            return new Rectangle(X, Y, Width, Height);
+        }
+
+        public override int GetHashCode()
+        {
+            return 2108858624 + EqualityComparer<Guid>.Default.GetHashCode(Id);
+        }
+
         public void MakeConnections(Graph graph)
         {
             Input?.FinishLoading(graph);
@@ -87,16 +113,14 @@ namespace Ned
                 connection.FinishLoading(graph);
         }
 
-        internal void AddOutput(string text)
+        public static bool operator ==(Node node1, Node node2)
         {
-            if (!NodeInfo.CanEditConnectors) return;
-            Outputs.Add(new Connection(this, NodeSide.Output, Outputs.Count, text));
-            RecalculateWidth();
+            return EqualityComparer<Node>.Default.Equals(node1, node2);
         }
 
-        public void RecalculateWidth()
+        public static bool operator !=(Node node1, Node node2)
         {
-            Width = WidthCalculator.Invoke(this);
+            return !(node1 == node2);
         }
 
         public bool Pick(float x, float y)
@@ -104,9 +128,9 @@ namespace Ned
             return GetBounds().Pick(x, y);
         }
 
-        public Rectangle GetBounds()
+        public void RecalculateWidth()
         {
-            return new Rectangle(X, Y, Width, Height);
+            Width = WidthCalculator.Invoke(this);
         }
 
         public void RemoveOutput(Connection connection)
@@ -115,12 +139,6 @@ namespace Ned
             Outputs.Remove(connection);
             RecalculateWidth();
             BuildConnections();
-        }
-
-        public void BuildConnections()
-        {
-            for (var i = 0; i < Outputs.Count; i++)
-                Outputs[i].ConnectionIndex = i;
         }
 
         internal SavedNode Save()
@@ -136,27 +154,6 @@ namespace Ned
                 Layer = Layer,
                 Name = Name
             };
-        }
-
-        public override bool Equals(object obj)
-        {
-            return obj is Node node &&
-                   Id.Equals(node.Id);
-        }
-
-        public override int GetHashCode()
-        {
-            return 2108858624 + EqualityComparer<Guid>.Default.GetHashCode(Id);
-        }
-
-        public static bool operator ==(Node node1, Node node2)
-        {
-            return EqualityComparer<Node>.Default.Equals(node1, node2);
-        }
-
-        public static bool operator !=(Node node1, Node node2)
-        {
-            return !(node1 == node2);
         }
     }
 }

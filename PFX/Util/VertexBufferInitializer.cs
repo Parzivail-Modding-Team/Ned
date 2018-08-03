@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using OpenTK;
 
 namespace PFX.Util
@@ -12,7 +11,8 @@ namespace PFX.Util
         public List<int> Indices { get; }
         public List<int> Colors { get; }
 
-        public VertexBufferInitializer(List<Vector3> vertices, List<Vector3> normals, List<Vector2> texCoords, List<int> colors, List<int> indices)
+        public VertexBufferInitializer(List<Vector3> vertices, List<Vector3> normals, List<Vector2> texCoords,
+            List<int> colors, List<int> indices)
         {
             Vertices = vertices;
             Normals = normals;

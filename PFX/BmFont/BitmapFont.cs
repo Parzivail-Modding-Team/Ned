@@ -19,131 +19,6 @@ namespace PFX.BmFont
         public List<FontKerning> KerningPairs { get; set; }
         public FontChar MissingCharacter { get; set; }
 
-        public void RenderString(string s, bool cache = true)
-        {
-            if (_cacheTextList.ContainsKey(s) && cache)
-            {
-                GL.PushMatrix();
-                GL.CallList(_cacheTextList[s]);
-                GL.PopMatrix();
-                return;
-            }
-
-            GL.PushMatrix();
-            if (cache)
-            {
-                var list = GL.GenLists(1);
-                _cacheTextList.Add(s, list);
-                GL.NewList(list, ListMode.CompileAndExecute);
-            }
-
-            var chars = s.ToCharArray();
-
-            var cursor = new PointF(0, 0);
-            foreach (var c in chars)
-            {
-                if (c == '\n')
-                {
-                    cursor.X = 0;
-                    cursor.Y += Common.LineHeight;
-                    continue;
-                }
-
-                var fontChar = MissingCharacter;
-                if (Characters.Any(fc => fc.Id == c))
-                    fontChar = Characters.First(fc => fc.Id == c);
-
-                if (c != ' ')
-                {
-                    GL.PushMatrix();
-                    GL.Translate(cursor.X + fontChar.OffsetX, cursor.Y + fontChar.OffsetY, 0);
-                    GL.BindTexture(TextureTarget.Texture2D, fontChar.CharacterBitmap.Key);
-                    GL.Begin(PrimitiveType.Quads);
-                    GL.TexCoord2(0, 0);
-                    GL.Vertex2(0, 0);
-                    GL.TexCoord2(1, 0);
-                    GL.Vertex2(fontChar.Width, 0);
-                    GL.TexCoord2(1, 1);
-                    GL.Vertex2(fontChar.Width, fontChar.Height);
-                    GL.TexCoord2(0, 1);
-                    GL.Vertex2(0, fontChar.Height);
-                    GL.End();
-                    GL.PopMatrix();
-                }
-
-                cursor.X += fontChar.AdvanceX;
-            }
-
-            if (cache)
-                GL.EndList();
-            GL.PopMatrix();
-        }
-
-        public SizeF MeasureString(string s)
-        {
-            if (_cacheTextSize.ContainsKey(s))
-                return _cacheTextSize[s];
-
-            var chars = s.ToCharArray();
-
-            var size = new SizeF(0, 0);
-            var cursor = new PointF(0, 0);
-            foreach (var c in chars)
-            {
-                if (c == '\n')
-                {
-                    cursor.X = 0;
-                    cursor.Y += Common.LineHeight;
-                    continue;
-                }
-
-                var fontChar = Characters.Any(fC => fC.Id == c) ? Characters.First(fC => fC.Id == c) : MissingCharacter;
-
-                var nx = cursor.X + fontChar.OffsetX + (c == ' ' ? 2 * fontChar.AdvanceX : fontChar.Width);
-                var ny = cursor.Y + fontChar.OffsetY + fontChar.Height;
-
-                cursor.X += fontChar.AdvanceX;
-
-                if (nx > size.Width)
-                    size.Width = nx;
-                if (ny > size.Height)
-                    size.Height = ny;
-            }
-
-            _cacheTextSize.Add(s, size);
-
-            return size;
-        }
-
-        private void LoadPageBitmaps()
-        {
-            var path = Path.GetDirectoryName(Filename);
-
-            Pages.PageBitmaps = new List<Bitmap>();
-            foreach (var pageName in Pages.PageNames)
-            {
-                if (!File.Exists(path + $"\\{pageName}"))
-                    throw new FileNotFoundException($"Could not load font page \"{path}\\{pageName}\"");
-
-                Pages.PageBitmaps.Add((Bitmap) Image.FromFile(path + $"\\{pageName}"));
-            }
-        }
-
-        private void LoadCharacterBitmapData()
-        {
-            foreach (var c in Characters)
-            {
-                var b = new Bitmap(c.Width, c.Height);
-                var g = Graphics.FromImage(b);
-                g.DrawImage(Pages.PageBitmaps[c.Page],
-                    new Rectangle(0, 0, c.Width, c.Height),
-                    c.X, c.Y, c.Width, c.Height,
-                    GraphicsUnit.Pixel);
-
-                c.CharacterBitmap = b.LoadGlTexture();
-            }
-        }
-
         public static BitmapFont LoadBinaryFont(string filename)
         {
             if (!File.Exists(filename))
@@ -268,6 +143,131 @@ namespace PFX.BmFont
             }
 
             return font;
+        }
+
+        private void LoadCharacterBitmapData()
+        {
+            foreach (var c in Characters)
+            {
+                var b = new Bitmap(c.Width, c.Height);
+                var g = Graphics.FromImage(b);
+                g.DrawImage(Pages.PageBitmaps[c.Page],
+                    new Rectangle(0, 0, c.Width, c.Height),
+                    c.X, c.Y, c.Width, c.Height,
+                    GraphicsUnit.Pixel);
+
+                c.CharacterBitmap = b.LoadGlTexture();
+            }
+        }
+
+        private void LoadPageBitmaps()
+        {
+            var path = Path.GetDirectoryName(Filename);
+
+            Pages.PageBitmaps = new List<Bitmap>();
+            foreach (var pageName in Pages.PageNames)
+            {
+                if (!File.Exists(path + $"\\{pageName}"))
+                    throw new FileNotFoundException($"Could not load font page \"{path}\\{pageName}\"");
+
+                Pages.PageBitmaps.Add((Bitmap) Image.FromFile(path + $"\\{pageName}"));
+            }
+        }
+
+        public SizeF MeasureString(string s)
+        {
+            if (_cacheTextSize.ContainsKey(s))
+                return _cacheTextSize[s];
+
+            var chars = s.ToCharArray();
+
+            var size = new SizeF(0, 0);
+            var cursor = new PointF(0, 0);
+            foreach (var c in chars)
+            {
+                if (c == '\n')
+                {
+                    cursor.X = 0;
+                    cursor.Y += Common.LineHeight;
+                    continue;
+                }
+
+                var fontChar = Characters.Any(fC => fC.Id == c) ? Characters.First(fC => fC.Id == c) : MissingCharacter;
+
+                var nx = cursor.X + fontChar.OffsetX + (c == ' ' ? 2 * fontChar.AdvanceX : fontChar.Width);
+                var ny = cursor.Y + fontChar.OffsetY + fontChar.Height;
+
+                cursor.X += fontChar.AdvanceX;
+
+                if (nx > size.Width)
+                    size.Width = nx;
+                if (ny > size.Height)
+                    size.Height = ny;
+            }
+
+            _cacheTextSize.Add(s, size);
+
+            return size;
+        }
+
+        public void RenderString(string s, bool cache = true)
+        {
+            if (_cacheTextList.ContainsKey(s) && cache)
+            {
+                GL.PushMatrix();
+                GL.CallList(_cacheTextList[s]);
+                GL.PopMatrix();
+                return;
+            }
+
+            GL.PushMatrix();
+            if (cache)
+            {
+                var list = GL.GenLists(1);
+                _cacheTextList.Add(s, list);
+                GL.NewList(list, ListMode.CompileAndExecute);
+            }
+
+            var chars = s.ToCharArray();
+
+            var cursor = new PointF(0, 0);
+            foreach (var c in chars)
+            {
+                if (c == '\n')
+                {
+                    cursor.X = 0;
+                    cursor.Y += Common.LineHeight;
+                    continue;
+                }
+
+                var fontChar = MissingCharacter;
+                if (Characters.Any(fc => fc.Id == c))
+                    fontChar = Characters.First(fc => fc.Id == c);
+
+                if (c != ' ')
+                {
+                    GL.PushMatrix();
+                    GL.Translate(cursor.X + fontChar.OffsetX, cursor.Y + fontChar.OffsetY, 0);
+                    GL.BindTexture(TextureTarget.Texture2D, fontChar.CharacterBitmap.Key);
+                    GL.Begin(PrimitiveType.Quads);
+                    GL.TexCoord2(0, 0);
+                    GL.Vertex2(0, 0);
+                    GL.TexCoord2(1, 0);
+                    GL.Vertex2(fontChar.Width, 0);
+                    GL.TexCoord2(1, 1);
+                    GL.Vertex2(fontChar.Width, fontChar.Height);
+                    GL.TexCoord2(0, 1);
+                    GL.Vertex2(0, fontChar.Height);
+                    GL.End();
+                    GL.PopMatrix();
+                }
+
+                cursor.X += fontChar.AdvanceX;
+            }
+
+            if (cache)
+                GL.EndList();
+            GL.PopMatrix();
         }
     }
 }

@@ -12,12 +12,6 @@ namespace Sandbox
 
         private Graph _graph;
 
-        public FormDialogueEditor(MainWindow nodeEditor)
-        {
-            _nodeEditor = nodeEditor;
-            InitializeComponent();
-        }
-
         public string FileName
         {
             get => _fileName;
@@ -29,26 +23,22 @@ namespace Sandbox
             }
         }
 
-        private void FormDialogEditor_Load(object sender, EventArgs e)
+        public FormDialogueEditor(MainWindow nodeEditor)
         {
-            Text = Resources.AppTitleStatic;
-
-            _graph = new Graph
-            {
-                new Node(NodeInfo.Start, 50, 50),
-                new Node(NodeInfo.End, 300, 100)
-            };
+            _nodeEditor = nodeEditor;
+            InitializeComponent();
         }
 
-        private void FormDialogEditor_FormClosing(object sender, FormClosingEventArgs e)
+        public void AskExportFile()
         {
-            _nodeEditor.Kill();
-            e.Cancel = true;
-        }
+            if (efd.ShowDialog() != DialogResult.OK)
+                return;
+            FileName = efd.FileName;
 
-        public Graph GetGraph()
-        {
-            return _graph;
+            Lumberjack.Info($"Exporting {FileName}...");
+            NedExporter.Export(_graph, efd.FileName);
+            Lumberjack.Info($"Exporting {FileName}.");
+            _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, efd.FileName)}  (beta-{Resources.Version})";
         }
 
         public void AskOpenFile()
@@ -89,18 +79,6 @@ namespace Sandbox
             _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, sfd.FileName)}  (beta-{Resources.Version})";
         }
 
-        public void AskExportFile()
-        {
-            if (efd.ShowDialog() != DialogResult.OK)
-                return;
-            FileName = efd.FileName;
-
-            Lumberjack.Info($"Exporting {FileName}...");
-            NedExporter.Export(_graph, efd.FileName);
-            Lumberjack.Info($"Exporting {FileName}.");
-            _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, efd.FileName)}  (beta-{Resources.Version})";
-        }
-
         private void bOpen_Click(object sender, EventArgs e)
         {
             AskOpenFile();
@@ -114,6 +92,28 @@ namespace Sandbox
         private void bSaveAs_Click(object sender, EventArgs e)
         {
             AskSaveFileAs();
+        }
+
+        private void FormDialogEditor_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            _nodeEditor.Kill();
+            e.Cancel = true;
+        }
+
+        private void FormDialogEditor_Load(object sender, EventArgs e)
+        {
+            Text = Resources.AppTitleStatic;
+
+            _graph = new Graph
+            {
+                new Node(NodeInfo.Start, 50, 50),
+                new Node(NodeInfo.End, 300, 100)
+            };
+        }
+
+        public Graph GetGraph()
+        {
+            return _graph;
         }
     }
 }

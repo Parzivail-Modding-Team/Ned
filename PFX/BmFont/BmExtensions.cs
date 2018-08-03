@@ -10,20 +10,6 @@ namespace PFX.BmFont
 {
     internal static class BmExtensions
     {
-        public static string ReadNullTermString(this BinaryReader reader)
-        {
-            var list = new List<byte>();
-            while (true)
-            {
-                var b = reader.ReadByte();
-                if (b == 0)
-                    break;
-                list.Add(b);
-            }
-
-            return list.ToArray().GetString();
-        }
-
         public static string GetString(this byte[] bytes)
         {
             return Encoding.UTF8.GetString(bytes);
@@ -53,6 +39,20 @@ namespace PFX.BmFont
                 (int) TextureWrapMode.ClampToEdge);
 
             return new KeyValuePair<int, Bitmap>(tex, bitmap);
+        }
+
+        public static string ReadNullTermString(this BinaryReader reader)
+        {
+            var list = new List<byte>();
+            while (true)
+            {
+                var b = reader.ReadByte();
+                if (b == 0)
+                    break;
+                list.Add(b);
+            }
+
+            return list.ToArray().GetString();
         }
     }
 }
