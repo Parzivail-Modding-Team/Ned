@@ -20,8 +20,9 @@ namespace Sandbox
         private readonly Dictionary<NodeInfo, Color> _colorMap = new Dictionary<NodeInfo, Color>();
         private readonly Dictionary<Node, Vector2> _draggingNodeOffset = new Dictionary<Node, Vector2>();
         private readonly Profiler _profiler = new Profiler();
-        private readonly Color4 _selectionRectangleColor = new Color4(0f, 0f, 1f, 0.1f);
-        private readonly float[] _zoomLevels = {0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1, 2, 3, 4};
+        private readonly Color4 _selectionRectangleColor = new Color4(0, 0, 1, 0.1f);
+        private readonly Color4 _placeholderTextColor = new Color4(1, 1, 1, 0.5f);
+        private readonly float[] _zoomLevels = { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1, 2, 3, 4 };
         private ContextMenu _contextMenu;
         private bool _draggingBackground;
         private Connection _draggingConnection;
@@ -194,15 +195,15 @@ namespace Sandbox
             var width = 120;
             const int textPadding = 40;
 
-            width = (int) Math.Max(Font.MeasureString(node.Name).Width + textPadding, width);
+            width = (int)Math.Max(Font.MeasureString(node.Name).Width + textPadding, width);
 
             if (node.Input != null)
-                width = (int) Math.Max(Font.MeasureString(node.Input.Text).Width + textPadding, width);
+                width = (int)Math.Max(Font.MeasureString(node.Input.Text).Width + textPadding, width);
 
             foreach (var connection in node.Outputs)
-                width = (int) Math.Max(Font.MeasureString(connection.Text).Width + textPadding, width);
+                width = (int)Math.Max(Font.MeasureString(connection.Text).Width + textPadding, width);
 
-            width = (int) (Math.Ceiling(width / (float) _grid.Pitch) * _grid.Pitch);
+            width = (int)(Math.Ceiling(width / (float)_grid.Pitch) * _grid.Pitch);
 
             return width;
         }
@@ -232,11 +233,14 @@ namespace Sandbox
             GL.ClearColor(Color.White);
 
             // Load fonts
-            Font = BitmapFont.LoadBinaryFont("dina", FontBank.FontDina, FontBank.BmDina);
+            Font = BitmapFont.LoadBinaryFont("", FontBank.FontAlanaSans, FontBank.BmAlanaSans);
 
             // Load sparklines
-            _fpsSparkline = new Sparkline(Font, $"0-{(int) TargetRenderFrequency}fps", 50,
-                (float) TargetRenderFrequency, Sparkline.SparklineStyle.Area);
+            var tfreq = (int)TargetRenderFrequency;
+            if (tfreq == 0)
+                tfreq = (int)DisplayDevice.GetDisplay(DisplayIndex.Default).RefreshRate;
+            _fpsSparkline = new Sparkline(Font, $"0-{tfreq}fps", 50,
+                tfreq, Sparkline.SparklineStyle.Area);
             _renderTimeSparkline = new Sparkline(Font, "0-50ms", 50, 50, Sparkline.SparklineStyle.Area);
 
             // Init keyboard to ensure first frame won't NPE
@@ -271,23 +275,23 @@ namespace Sandbox
             _colorMap.Add(NodeInfo.ClearFlag, Color.MediumVioletRed);
 
             _colorMap.Add(NodeInfo.HasQuest, Color.DarkOrange);
-            _colorMap.Add(NodeInfo.StartQuest, Color.CadetBlue);
+            _colorMap.Add(NodeInfo.StartQuest, Color.SteelBlue);
             _colorMap.Add(NodeInfo.CompleteQuest, Color.DarkOrchid);
 
             _colorMap.Add(NodeInfo.TriggerEvent, Color.DarkKhaki);
 
             KeybindHandler.Register(new KeyCombo("Delete Selection", Key.Delete), () => _selectionHandler.Delete());
-            KeybindHandler.Register(new KeyCombo("Reset Zoom", Key.R, KeyModifiers.Control), () => SetZoom(1));
+            KeybindHandler.Register(new KeyCombo("Reset Zoom", Key.R, KeyModifiers.Control), () => SetZoom(5));
             KeybindHandler.Register(
                 new KeyCombo("Reset Zoom and Pan", Key.R, KeyModifiers.Control | KeyModifiers.Shift), () =>
                 {
-                    SetZoom(1);
+                    SetZoom(5);
                     _grid.Offset = Vector2.Zero;
                 });
             KeybindHandler.Register(new KeyCombo("Add Output", Key.Plus, KeyModifiers.Control), () =>
             {
                 if (_selectionHandler.SingleSelectedNode == null ||
-                    _selectionHandler.SingleSelectedNode.NodeInfo.CanEditConnectors) return;
+                    !_selectionHandler.SingleSelectedNode.NodeInfo.CanEditConnectors) return;
 
                 AddOutput(_selectionHandler.SingleSelectedNode);
             });
@@ -478,8 +482,8 @@ namespace Sandbox
 
                     if (!_keyboard[Key.ShiftLeft])
                     {
-                        node.X = (int) (Math.Floor(node.X / _grid.Pitch) * _grid.Pitch);
-                        node.Y = (int) (Math.Floor(node.Y / _grid.Pitch) * _grid.Pitch);
+                        node.X = (int)(Math.Floor(node.X / _grid.Pitch) * _grid.Pitch);
+                        node.Y = (int)(Math.Floor(node.Y / _grid.Pitch) * _grid.Pitch);
                     }
                 }
         }
@@ -559,9 +563,9 @@ namespace Sandbox
 
             // Update sparklines
             if (_profile.ContainsKey("render"))
-                _renderTimeSparkline.Enqueue((float) _profile["render"].TotalMilliseconds);
+                _renderTimeSparkline.Enqueue((float)_profile["render"].TotalMilliseconds);
 
-            _fpsSparkline.Enqueue((float) RenderFrequency);
+            _fpsSparkline.Enqueue((float)RenderFrequency);
 
             // Reset the view
             GL.Clear(ClearBufferMask.ColorBufferBit |
@@ -633,15 +637,15 @@ namespace Sandbox
             {
                 // Static diagnostic header
                 GL.PushMatrix();
-                Font.RenderString($"FPS: {(int) Math.Round(RenderFrequency)}\n" +
-                                  $"Render Time: {(int) _profile["render"].TotalMilliseconds}ms\n" +
+                Font.RenderString($"FPS: {(int)Math.Round(RenderFrequency)}\n" +
+                                  $"Render Time: {(int)_profile["render"].TotalMilliseconds}ms\n" +
                                   $"Zoom: {Zoom}\n" +
                                   $"Nodes: {Graph.Count}", false);
 
                 // Sparklines
-                GL.Translate(5, (int) (Height - Font.Common.LineHeight * 1.4f * 2), 0);
+                GL.Translate(5, (int)(Height - Font.Common.LineHeight * 1.4f * 2), 0);
                 _fpsSparkline.Render(Color.Blue, Color.LimeGreen);
-                GL.Translate(0, (int) (Font.Common.LineHeight * 1.4f), 0);
+                GL.Translate(0, (int)(Font.Common.LineHeight * 1.4f), 0);
                 _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
                 GL.PopMatrix();
             }
@@ -844,16 +848,15 @@ namespace Sandbox
             if (string.IsNullOrWhiteSpace(s))
                 return;
 
-            if (Zoom >= 0.5)
-            {
+            if (Zoom >= 1)
                 Font.RenderString(s);
-            }
             else
             {
                 GL.PushAttrib(AttribMask.EnableBit);
                 GL.Disable(EnableCap.Texture2D);
                 var size = Font.MeasureString(s);
                 var halfHeight = Font.Common.LineHeight / 2;
+                GL.Color4(_placeholderTextColor);
                 Fx.D2.DrawSolidRoundRectangle(0, 0, size.Width, Font.Common.LineHeight, halfHeight, halfHeight,
                     halfHeight,
                     halfHeight);
@@ -887,7 +890,7 @@ namespace Sandbox
 
             var size = new Vector2(Width, Height);
             _grid.Offset -= (size / zoomBefore - size / Zoom) / 2;
-            _grid.Offset = new Vector2((int) _grid.Offset.X, (int) _grid.Offset.Y);
+            _grid.Offset = new Vector2((int)_grid.Offset.X, (int)_grid.Offset.Y);
         }
 
         private void Update(object sender, FrameEventArgs e)

@@ -63,6 +63,26 @@ namespace PFX {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        public static System.Drawing.Bitmap BmAlanaSans {
+            get {
+                object obj = ResourceManager.GetObject("BmAlanaSans", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        public static System.Drawing.Bitmap BmBattleAround {
+            get {
+                object obj = ResourceManager.GetObject("BmBattleAround", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         public static System.Drawing.Bitmap BmBattlenet {
             get {
                 object obj = ResourceManager.GetObject("BmBattlenet", resourceCulture);
@@ -117,6 +137,26 @@ namespace PFX {
             get {
                 object obj = ResourceManager.GetObject("BmWebslinger", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        public static byte[] FontAlanaSans {
+            get {
+                object obj = ResourceManager.GetObject("FontAlanaSans", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        public static byte[] FontBattleAround {
+            get {
+                object obj = ResourceManager.GetObject("FontBattleAround", resourceCulture);
+                return ((byte[])(obj));
             }
         }
         

@@ -10,7 +10,7 @@ namespace Sandbox
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            new MainWindow().Run(20, 60);
+            new MainWindow().Run(20);
         }
     }
 }

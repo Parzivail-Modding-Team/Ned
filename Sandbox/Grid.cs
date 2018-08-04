@@ -17,7 +17,7 @@ namespace Sandbox
 
         public void Draw()
         {
-            if (_window.Zoom < 0.5)
+            if (_window.Zoom < 1)
                 return;
 
             var sZ = Pitch * _window.Zoom;

@@ -50,7 +50,11 @@
     <Compile Include="BmFont\FontInfo.cs" />
     <Compile Include="BmFont\FontKerning.cs" />
     <Compile Include="BmFont\FontPages.cs" />
-    <Compile Include="FontBank.Designer.cs" />
+    <Compile Include="FontBank.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>FontBank.resx</DependentUpon>
+    </Compile>
     <Compile Include="Lumberjack.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources.Designer.cs" />
@@ -69,12 +73,17 @@
     <Compile Include="Util\VertexBufferInitializer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="FontBank.resx" />
+    <EmbeddedResource Include="FontBank.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>FontBank.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Include="Resources.resx" />
   </ItemGroup>
   <ItemGroup>
     <None Include="OpenTK.dll.config" />
     <None Include="packages.config" />
+    <None Include="Resources\alanasans.fnt" />
+    <None Include="Resources\battlearound.fnt" />
     <None Include="Resources\dina.fnt" />
     <None Include="Resources\FontBattlenet.fnt" />
     <None Include="Resources\FontBattlenetBold.fnt" />
@@ -83,6 +92,8 @@
     <None Include="Resources\webslinger.fnt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\alanasans_0.png" />
+    <Content Include="Resources\battlearound_0.png" />
     <Content Include="Resources\BmBattlenet.png" />
     <Content Include="Resources\BmBattlenetBold.png" />
     <Content Include="Resources\dina_0.png" />
