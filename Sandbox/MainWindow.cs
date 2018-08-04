@@ -786,10 +786,10 @@ namespace Sandbox
         private void RenderNode(Node node)
         {
             const int borderRadius = 6;
-            const int headerHeight = 18;
             const int panelInset = 2;
             const float halfPanelInset = panelInset / 2f;
 
+            var headerHeight = (int) (Font.Common.LineHeight * 1.2f);
             var oneCanvasPixel = 1 / Zoom;
 
             GL.PushMatrix();
