@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
+using System.Windows.Forms;
 using Ned;
 using OpenTK;
 using OpenTK.Graphics;
@@ -11,6 +12,7 @@ using OpenTK.Input;
 using PFX;
 using PFX.BmFont;
 using PFX.Util;
+using KeyPressEventArgs = OpenTK.KeyPressEventArgs;
 using Rectangle = Ned.Rectangle;
 
 namespace Sandbox
@@ -210,6 +212,20 @@ namespace Sandbox
 
         private void HandleClose(object sender, CancelEventArgs e)
         {
+            if (Graph.Count != 2)
+            {
+                switch (MessageBox.Show("Save changes before closing?", "Save changes?", MessageBoxButtons.YesNoCancel))
+                {
+                    case DialogResult.Cancel:
+                        e.Cancel = true;
+                        return;
+                    case DialogResult.Yes:
+                        DialogEditor.AskSaveFile();
+                        break;
+                    case DialogResult.No:
+                        break;
+                }
+            }
             DialogEditor.Close();
         }
 

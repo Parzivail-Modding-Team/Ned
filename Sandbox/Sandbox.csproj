@@ -92,7 +92,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="Resources\Ned 0.0.2.zip" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Costura.Fody">
