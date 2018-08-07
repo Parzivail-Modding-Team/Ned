@@ -831,7 +831,7 @@ namespace Sandbox
 
             GL.PushMatrix();
             var headerOffset = (headerHeight + panelInset) / 2f - Font.MeasureString(node.Name).Height / 2;
-            GL.Translate(node.X + 2 * panelInset, node.Y + headerOffset, 0.01);
+            GL.Translate((int)(node.X + 2 * panelInset), (int)(node.Y + headerOffset), 0.01);
             RenderString(node.Name);
             GL.PopMatrix();
 
