@@ -3,14 +3,14 @@ using OpenTK.Graphics.OpenGL;
 
 namespace Sandbox
 {
-    internal class Grid
+    internal class GridRenderer
     {
         private readonly MainWindow _window;
 
         public Vector2 Offset { get; set; }
         public int Pitch { get; set; } = 10;
 
-        public Grid(MainWindow window)
+        public GridRenderer(MainWindow window)
         {
             _window = window;
         }

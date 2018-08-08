@@ -1,6 +1,6 @@
 ﻿namespace Sandbox
 {
-    internal enum SelectionMode
+    public enum SelectionMode
     {
         Normal,
         Additive,

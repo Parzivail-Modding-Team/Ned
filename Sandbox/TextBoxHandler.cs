@@ -2,7 +2,7 @@
 
 namespace Sandbox
 {
-    internal class GuiHandler
+    internal class TextBoxHandler
     {
         public static TextBox TextBox;
         public static Connection EditingConnection;

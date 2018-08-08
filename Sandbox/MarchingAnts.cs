@@ -83,18 +83,18 @@ namespace Sandbox
         private static int _index;
         private static int _indexTimer;
 
-        public static void Release()
-        {
-            GL.Disable(EnableCap.PolygonStipple);
-        }
-
-        public static void Update()
+        public static void March()
         {
             if (_indexTimer++ < 1)
                 return;
 
             _indexTimer = 0;
             _index = (_index + 1) % Pattern.Length;
+        }
+
+        public static void Release()
+        {
+            GL.Disable(EnableCap.PolygonStipple);
         }
 
         public static void Use()

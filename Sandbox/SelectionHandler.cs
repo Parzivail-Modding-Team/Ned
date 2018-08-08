@@ -3,25 +3,47 @@ using System.Collections.Generic;
 using System.Linq;
 using Ned;
 using OpenTK;
+using OpenTK.Input;
 
 namespace Sandbox
 {
-    internal class SelectionHandler
+    public class SelectionHandler
     {
         private readonly List<Vector2> _copiedNodeOffsets = new List<Vector2>();
         private readonly List<Node> _copiedNodes = new List<Node>();
         private readonly MainWindow _window;
         public readonly List<Node> SelectedNodes = new List<Node>();
+        private Rectangle _selectionRectangle;
 
-        public Rectangle SelectionRectangle;
+        public Connection DraggingConnection;
+        public Connection HoveringConnection;
+        public bool IsDraggingNode;
+
+        public Rectangle SelectionRectangle
+        {
+            get => _selectionRectangle;
+            set
+            {
+                _selectionRectangle = value;
+                if (value != null)
+                    Select();
+            }
+        }
 
         public Node SingleSelectedNode => SelectedNodes.Count == 1 ? SelectedNodes[0] : null;
         public bool IsClipboardEmpty => _copiedNodes.Count == 0;
         public bool OneOrNoneSelected => SelectedNodes.Count <= 1;
 
+        public bool IsSpecialSelectActive => _window.Keyboard[Key.ControlLeft];
+
         public SelectionHandler(MainWindow window)
         {
             _window = window;
+        }
+
+        public void Clear()
+        {
+            SelectedNodes.Clear();
         }
 
         public void Copy()
@@ -82,16 +104,19 @@ namespace Sandbox
             }
         }
 
-        public void Select(Graph graph, SelectionMode mode)
+        public void Select()
         {
+            var mode = IsSpecialSelectActive ? SelectionMode.Additive : SelectionMode.Normal;
             switch (mode)
             {
                 case SelectionMode.Normal:
-                    SelectedNodes.Clear();
-                    SelectedNodes.AddRange(graph.Where(node => SelectionRectangle.Intersects(node.GetBounds())));
+                    Clear();
+                    SelectedNodes.AddRange(_window.Graph.Where(node =>
+                        SelectionRectangle.Intersects(node.GetBounds())));
                     break;
                 case SelectionMode.Additive:
-                    SelectedNodes.AddRange(graph.Where(node => SelectionRectangle.Intersects(node.GetBounds())));
+                    SelectedNodes.AddRange(_window.Graph.Where(node =>
+                        SelectionRectangle.Intersects(node.GetBounds())));
                     break;
                 case SelectionMode.Subtractive:
                     SelectedNodes.RemoveAll(node => SelectionRectangle.Intersects(node.GetBounds()));
@@ -103,7 +128,7 @@ namespace Sandbox
 
         public void Select(Node node)
         {
-            SelectedNodes.Clear();
+            Clear();
             SelectedNodes.Add(node);
         }
     }
