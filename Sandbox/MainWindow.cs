@@ -604,7 +604,7 @@ namespace Sandbox
                 //                _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
                 NanoVG.nvgRestore(Nvg);
             }
-
+            
             NanoVG.nvgEndFrame(Nvg);
             // Swap the graphics buffer
             SwapBuffers();

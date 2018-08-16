@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using NanoVGDotNet;
 using OpenTK.Graphics;
+using PFX;
 
 namespace Sandbox
 {
@@ -24,11 +25,23 @@ namespace Sandbox
 
         public static SizeF MeasureString(string text)
         {
+            if (string.IsNullOrWhiteSpace(text))
+                return SizeF.Empty;
+
             if (text.EndsWith(" "))
                 text = $"{text.Substring(0, text.Length - 1)}(";
             NanoVG.nvgFontFace(MainWindow.Nvg, "sans");
             var sb = new float[4];
-            NanoVG.nvgTextBounds(MainWindow.Nvg, 0, 0, text, sb);
+
+            try
+            {
+                NanoVG.nvgTextBounds(MainWindow.Nvg, 0, 0, text, sb);
+            }
+            catch (Exception e)
+            {
+                Lumberjack.Error($"NvgHelper::MeasureString: {e.Message}");
+            }
+
             var sfw = sb[2] - sb[0];
             var sfh = sb[3] - sb[1];
             return new SizeF(sfw, sfh);
@@ -36,13 +49,20 @@ namespace Sandbox
 
         public static void RenderString(string s)
         {
-            if (String.IsNullOrWhiteSpace(s))
+            if (string.IsNullOrWhiteSpace(s))
                 return;
 
             NanoVG.nvgTextAlign(MainWindow.Nvg, (int)NvgAlign.Top | (int)NvgAlign.Left);
             NanoVG.nvgFontSize(MainWindow.Nvg, 16);
             NanoVG.nvgFontFace(MainWindow.Nvg, "sans");
-            NanoVG.nvgText(MainWindow.Nvg, 0, 0, s);
+            try
+            {
+                NanoVG.nvgText(MainWindow.Nvg, 0, 0, s);
+            }
+            catch (Exception e)
+            {
+                Lumberjack.Error($"NvgHelper::RenderString: {e.Message}");
+            }
         }
     }
 }
