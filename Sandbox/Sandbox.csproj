@@ -47,6 +47,12 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="FontStash.OpenTK.net">
+      <HintPath>.\FontStash.OpenTK.net.dll</HintPath>
+    </Reference>
+    <Reference Include="NanoVG.OpenTK.net">
+      <HintPath>.\NanoVG.OpenTK.net.dll</HintPath>
+    </Reference>
     <Reference Include="ObjectListView">
       <HintPath>.\ObjectListView.dll</HintPath>
     </Reference>
@@ -74,6 +80,7 @@
       <DependentUpon>FormDialogueEditor.cs</DependentUpon>
     </Compile>
     <Compile Include="GridRenderer.cs" />
+    <Compile Include="NvgHelper.cs" />
     <Compile Include="TextBoxHandler.cs" />
     <Compile Include="KeybindHandler.cs" />
     <Compile Include="KeyCombo.cs" />
@@ -139,6 +146,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
+    <None Include="Resources\Fonts\latosemi.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Resources\icons8-add-property-16.png" />
     <None Include="Resources\icons8-remove-property-16.png" />
   </ItemGroup>

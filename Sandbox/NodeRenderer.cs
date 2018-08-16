@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using NanoVGDotNet;
 using Ned;
 using OpenTK;
 using OpenTK.Graphics;
@@ -14,7 +15,7 @@ namespace Sandbox
 {
     internal class NodeRenderer
     {
-        private readonly Dictionary<NodeInfo, Color> _colorMap = new Dictionary<NodeInfo, Color>();
+        private readonly Dictionary<NodeInfo, NVGcolor> _colorMap = new Dictionary<NodeInfo, NVGcolor>();
         private readonly GridRenderer _grid;
         private readonly Color4 _placeholderTextColor = new Color4(1, 1, 1, 0.5f);
         private readonly MainWindow _window;
@@ -24,23 +25,23 @@ namespace Sandbox
             _window = window;
             _grid = grid;
 
-            _colorMap.Add(NodeInfo.None, Color.Black);
+            _colorMap.Add(NodeInfo.None, Color.Black.ToNvgColor());
 
-            _colorMap.Add(NodeInfo.Start, Color.LimeGreen);
-            _colorMap.Add(NodeInfo.End, Color.IndianRed);
+            _colorMap.Add(NodeInfo.Start, Color.LimeGreen.ToNvgColor());
+            _colorMap.Add(NodeInfo.End, Color.IndianRed.ToNvgColor());
 
-            _colorMap.Add(NodeInfo.NpcDialogue, Color.MediumPurple);
-            _colorMap.Add(NodeInfo.PlayerDialogue, Color.LightSkyBlue);
+            _colorMap.Add(NodeInfo.NpcDialogue, Color.MediumPurple.ToNvgColor());
+            _colorMap.Add(NodeInfo.PlayerDialogue, Color.LightSkyBlue.ToNvgColor());
 
-            _colorMap.Add(NodeInfo.WaitForFlag, Color.Orange);
-            _colorMap.Add(NodeInfo.SetFlag, Color.MediumSeaGreen);
-            _colorMap.Add(NodeInfo.ClearFlag, Color.MediumVioletRed);
+            _colorMap.Add(NodeInfo.WaitForFlag, Color.Orange.ToNvgColor());
+            _colorMap.Add(NodeInfo.SetFlag, Color.MediumSeaGreen.ToNvgColor());
+            _colorMap.Add(NodeInfo.ClearFlag, Color.MediumVioletRed.ToNvgColor());
 
-            _colorMap.Add(NodeInfo.HasQuest, Color.DarkOrange);
-            _colorMap.Add(NodeInfo.StartQuest, Color.SteelBlue);
-            _colorMap.Add(NodeInfo.CompleteQuest, Color.DarkOrchid);
+            _colorMap.Add(NodeInfo.HasQuest, Color.DarkOrange.ToNvgColor());
+            _colorMap.Add(NodeInfo.StartQuest, Color.SteelBlue.ToNvgColor());
+            _colorMap.Add(NodeInfo.CompleteQuest, Color.DarkOrchid.ToNvgColor());
 
-            _colorMap.Add(NodeInfo.TriggerEvent, Color.DarkKhaki);
+            _colorMap.Add(NodeInfo.TriggerEvent, Color.DarkKhaki.ToNvgColor());
         }
 
         public int GetNodeWidth(Node node)
@@ -69,31 +70,38 @@ namespace Sandbox
 
         public void RenderConnection(Connection connection, Vector2 end)
         {
-            var v = new Vector2(200, 0);
             var bound = connection.GetBounds();
             var pos = new Vector2(bound.X, bound.Y);
-            Fx.D2.CentripetalCatmullRomTo(connection.Side == NodeSide.Input ? pos + v : pos - v, pos, end,
-                connection.Side == NodeSide.Input ? end - v : end + v);
+            var v = new Vector2((pos - end).Length / 4, 0);
+            NanoVG.nvgSave(MainWindow.Nvg);
+            NanoVG.nvgLineCap(MainWindow.Nvg, (int)NvgLineCap.Round);
+            NanoVG.nvgStrokeColor(MainWindow.Nvg, NanoVG.nvgRGBA(128, 128, 128, 255));
+            var ctrl1 = connection.Side == NodeSide.Input ? pos - v : pos + v;
+            var ctrl2 = connection.Side == NodeSide.Input ? end + v : end - v;
+            NanoVG.nvgBeginPath(MainWindow.Nvg);
+            NanoVG.nvgMoveTo(MainWindow.Nvg, pos.X, pos.Y);
+            NanoVG.nvgBezierTo(MainWindow.Nvg, ctrl1.X, ctrl1.Y, ctrl2.X, ctrl2.Y, end.X, end.Y);
+            NanoVG.nvgStroke(MainWindow.Nvg);
+            NanoVG.nvgRestore(MainWindow.Nvg);
         }
 
         public void RenderConnections(Node node)
         {
             if (!ScreenContains(node))
                 return;
-            GL.PushMatrix();
-            GL.Translate(0, 0, -1);
-            GL.Color3(Color.Gray);
+            NanoVG.nvgSave(MainWindow.Nvg);
+            NanoVG.nvgStrokeColor(MainWindow.Nvg, NanoVG.nvgRGBA(128, 128, 128, 255));
 
             foreach (var connection in node.Outputs)
                 if (connection.ConnectedNode != null)
                     RenderConnection(connection, connection.ConnectedNode);
 
-            GL.PopMatrix();
+            NanoVG.nvgRestore(MainWindow.Nvg);
         }
 
         private void RenderConnector(Connection connection)
         {
-            GL.PushMatrix();
+            NanoVG.nvgSave(MainWindow.Nvg);
 
             var pickedForDeletion =
                 _window.Selection.HoveringConnection == connection && _window.Keyboard[Key.ShiftLeft];
@@ -103,21 +111,20 @@ namespace Sandbox
             var halfr = r / 2;
             const int cxnBorderWidth = 2;
 
-            GL.Color3(Color.White);
-            GL.Enable(EnableCap.Texture2D);
+            NanoVG.nvgFillColor(MainWindow.Nvg, Color.White.ToNvgColor());
 
-            GL.PushMatrix();
+            NanoVG.nvgSave(MainWindow.Nvg);
             if (connection != TextBoxHandler.EditingConnection)
             {
                 switch (connection.Side)
                 {
                     case NodeSide.Input:
-                        GL.Translate(bound.X + twor, bound.Y - r, 0.01);
+                        NanoVG.nvgTranslate(MainWindow.Nvg, bound.X + twor, bound.Y - r);
                         RenderString(connection.Text);
                         break;
                     case NodeSide.Output:
                         var s = connection.Text;
-                        GL.Translate(bound.X - twor - _window.Font.MeasureString(s).Width, bound.Y - r, 0.01);
+                        NanoVG.nvgTranslate(MainWindow.Nvg, bound.X - twor - _window.Font.MeasureString(s).Width, bound.Y - r);
                         RenderString(s);
                         break;
                     default:
@@ -126,62 +133,44 @@ namespace Sandbox
             }
             else
             {
-                GL.Translate(0, 0, 0.01);
-                TextBoxHandler.TextBox.RenderBackground();
-                GL.Translate(0, 0, 0.01);
-                TextBoxHandler.TextBox.RenderForeground();
+                // TODO
+                //TextBoxHandler.TextBox.RenderBackground();
+                //TextBoxHandler.TextBox.RenderForeground();
             }
 
-            GL.PopMatrix();
+            NanoVG.nvgRestore(MainWindow.Nvg);
+            
+            NanoVG.nvgFillColor(MainWindow.Nvg, Color.DarkSlateGray.ToNvgColor());
 
-            GL.Disable(EnableCap.Texture2D);
+            NanoVG.nvgBeginPath(MainWindow.Nvg);
+            NanoVG.nvgCircle(MainWindow.Nvg, bound.X, bound.Y, r + cxnBorderWidth);
+            NanoVG.nvgFill(MainWindow.Nvg);
+            
+            NanoVG.nvgFillColor(MainWindow.Nvg, connection.Side == NodeSide.Input ? Color.DeepSkyBlue.ToNvgColor() : Color.LimeGreen.ToNvgColor());
+            NanoVG.nvgBeginPath(MainWindow.Nvg);
+            NanoVG.nvgCircle(MainWindow.Nvg, bound.X, bound.Y, r);
+            NanoVG.nvgFill(MainWindow.Nvg);
 
-            GL.Color3(Color.DarkSlateGray);
-            //Fx.D2.DrawSolidCircle(bound.X, bound.Y, r + 2);
-            if (connection.Side == NodeSide.Input)
-                Fx.D2.DrawSolidRoundRectangle(bound.X - r - cxnBorderWidth, bound.Y - r - cxnBorderWidth,
-                    twor + 2 * cxnBorderWidth,
-                    twor + 2 * cxnBorderWidth, r + cxnBorderWidth, 0, r + cxnBorderWidth, 0);
-            else
-                Fx.D2.DrawSolidRoundRectangle(bound.X - r - cxnBorderWidth, bound.Y - r - cxnBorderWidth,
-                    twor + 2 * cxnBorderWidth,
-                    twor + 2 * cxnBorderWidth, 0, r + cxnBorderWidth, 0, r + cxnBorderWidth);
-
-            GL.Translate(0, 0, 0.01);
-
-            GL.Color3(connection.Side == NodeSide.Input ? Color.DeepSkyBlue : Color.LimeGreen);
-            Fx.D2.DrawSolidCircle(bound.X, bound.Y, r);
-
+            NanoVG.nvgBeginPath(MainWindow.Nvg);
             if (_window.Selection.HoveringConnection != null && _window.Selection.DraggingConnection == connection &&
                 _window.Selection.HoveringConnection.Side != _window.Selection.DraggingConnection.Side)
-            {
-                GL.PushMatrix();
-                GL.Color3(Color.SlateGray);
-                GL.Translate(0, 0, 0.01);
-                Fx.D2.DrawSolidCircle(bound.X, bound.Y, halfr);
-                GL.PopMatrix();
-            }
+                NanoVG.nvgFillColor(MainWindow.Nvg, Color.SlateGray.ToNvgColor());
             else if (connection.ConnectedNode != null)
-            {
-                GL.PushMatrix();
-                GL.Color3(Color.DarkSlateGray);
+                NanoVG.nvgFillColor(MainWindow.Nvg, Color.DarkSlateGray.ToNvgColor());
 
-                GL.Translate(0, 0, 0.01);
-                Fx.D2.DrawSolidCircle(bound.X, bound.Y, halfr);
-                GL.PopMatrix();
-            }
+            NanoVG.nvgCircle(MainWindow.Nvg, bound.X, bound.Y, halfr);
+            NanoVG.nvgFill(MainWindow.Nvg);
 
             if (pickedForDeletion)
             {
-                GL.PushMatrix();
-                GL.Color3(Color.Red);
-
-                GL.Translate(0, 0, 0.01);
-                Fx.D2.DrawSolidCircle(bound.X, bound.Y, halfr);
-                GL.PopMatrix();
+                NanoVG.nvgFillColor(MainWindow.Nvg, Color.Red.ToNvgColor());
+                
+                NanoVG.nvgBeginPath(MainWindow.Nvg);
+                NanoVG.nvgCircle(MainWindow.Nvg, bound.X, bound.Y, halfr);
+                NanoVG.nvgFill(MainWindow.Nvg);
             }
 
-            GL.PopMatrix();
+            NanoVG.nvgRestore(MainWindow.Nvg);
         }
 
         public void RenderNode(Node node)
@@ -195,78 +184,62 @@ namespace Sandbox
             var headerHeight = (int) (_window.Font.Common.LineHeight * 1.2f);
             var oneCanvasPixel = 1 / _window.Zoom;
 
-            GL.PushMatrix();
-            GL.Translate(0, 0, node.Layer);
-            GL.Disable(EnableCap.Texture2D);
+            NanoVG.nvgSave(MainWindow.Nvg);
 
             if (_window.Selection.SelectedNodes.Contains(node))
             {
-                GL.Color3(Color.White);
-                Fx.D2.DrawSolidRoundRectangle(node.X - oneCanvasPixel, node.Y - oneCanvasPixel,
-                    node.Width + 2 * oneCanvasPixel,
-                    node.Height + 2 * oneCanvasPixel, borderRadius, borderRadius, borderRadius, borderRadius);
-                GL.Translate(0, 0, 0.01);
-                GL.Color3(Color.Black);
-                MarchingAnts.Use();
-                Fx.D2.DrawSolidRoundRectangle(node.X - oneCanvasPixel, node.Y - oneCanvasPixel,
-                    node.Width + 2 * oneCanvasPixel,
-                    node.Height + 2 * oneCanvasPixel, borderRadius, borderRadius, borderRadius, borderRadius);
-                MarchingAnts.Release();
+                // TODO
+//                GL.Color3(Color.White);
+//                Fx.D2.DrawSolidRoundRectangle(node.X - oneCanvasPixel, node.Y - oneCanvasPixel,
+//                    node.Width + 2 * oneCanvasPixel,
+//                    node.Height + 2 * oneCanvasPixel, borderRadius, borderRadius, borderRadius, borderRadius);
+//                GL.Translate(0, 0, 0.01);
+//                GL.Color3(Color.Black);
+//                MarchingAnts.Use();
+//                Fx.D2.DrawSolidRoundRectangle(node.X - oneCanvasPixel, node.Y - oneCanvasPixel,
+//                    node.Width + 2 * oneCanvasPixel,
+//                    node.Height + 2 * oneCanvasPixel, borderRadius, borderRadius, borderRadius, borderRadius);
+//                MarchingAnts.Release();
             }
+            
+            NanoVG.nvgFillColor(MainWindow.Nvg, _colorMap.ContainsKey(node.NodeInfo) ? _colorMap[node.NodeInfo] : NanoVG.nvgRGBA(0, 0, 0, 255));
+            
+            NanoVG.nvgBeginPath(MainWindow.Nvg);
+            NanoVG.nvgRoundedRect(MainWindow.Nvg, node.X, node.Y, node.Width, node.Height, borderRadius);
+            NanoVG.nvgFill(MainWindow.Nvg);
 
-            GL.Translate(0, 0, 0.01);
-
-            GL.Color3(_colorMap.ContainsKey(node.NodeInfo) ? _colorMap[node.NodeInfo] : Color.Black);
-
-            Fx.D2.DrawSolidRoundRectangle(node.X, node.Y, node.Width, node.Height, borderRadius, borderRadius,
-                borderRadius, borderRadius);
-
-            GL.Translate(0, 0, 0.01);
-
-            GL.Color3(Color.DarkSlateGray);
-            Fx.D2.DrawSolidRoundRectangle(node.X + panelInset, node.Y + headerHeight + panelInset,
+            NanoVG.nvgFillColor(MainWindow.Nvg, Color.DarkSlateGray.ToNvgColor());
+            NanoVG.nvgBeginPath(MainWindow.Nvg);
+            NanoVG.nvgRoundedRect(MainWindow.Nvg, node.X + panelInset, node.Y + headerHeight + panelInset,
                 node.Width - 2 * panelInset, node.Height - headerHeight - 2 * panelInset,
-                borderRadius - halfPanelInset, borderRadius - halfPanelInset, borderRadius - halfPanelInset,
                 borderRadius - halfPanelInset);
+            NanoVG.nvgFill(MainWindow.Nvg);
+            
+            NanoVG.nvgFillColor(MainWindow.Nvg, Color.White.ToNvgColor());
 
-            GL.Enable(EnableCap.Texture2D);
-            GL.Color3(Color.White);
-
-            GL.PushMatrix();
+            NanoVG.nvgSave(MainWindow.Nvg);
             var headerOffset = (headerHeight + panelInset) / 2f - _window.Font.MeasureString(node.Name).Height / 2;
-            GL.Translate((int) (node.X + 2 * panelInset), (int) (node.Y + headerOffset), 0.01);
+            NanoVG.nvgTranslate(MainWindow.Nvg, (int) (node.X + 2 * panelInset), (int) (node.Y + headerOffset));
             RenderString(node.Name);
-            GL.PopMatrix();
+            NanoVG.nvgRestore(MainWindow.Nvg);
 
             if (node.Input != null)
                 RenderConnector(node.Input);
 
             foreach (var nodeOutput in node.Outputs)
                 RenderConnector(nodeOutput);
-            GL.PopMatrix();
+            NanoVG.nvgRestore(MainWindow.Nvg);
         }
 
-        private void RenderString(string s)
+        public static void RenderString(string s)
         {
             if (string.IsNullOrWhiteSpace(s))
                 return;
 
-            if (_window.Zoom >= 1)
-            {
-                _window.Font.RenderString(s);
-            }
-            else
-            {
-                GL.PushAttrib(AttribMask.EnableBit);
-                GL.Disable(EnableCap.Texture2D);
-                var size = _window.Font.MeasureString(s);
-                var halfHeight = _window.Font.Common.LineHeight / 2;
-                GL.Color4(_placeholderTextColor);
-                Fx.D2.DrawSolidRoundRectangle(0, 0, size.Width, _window.Font.Common.LineHeight, halfHeight, halfHeight,
-                    halfHeight,
-                    halfHeight);
-                GL.PopAttrib();
-            }
+            NanoVG.nvgTextAlign(MainWindow.Nvg, (int)NvgAlign.Top | (int)NvgAlign.Left);
+            NanoVG.nvgFontSize(MainWindow.Nvg, 16);
+            NanoVG.nvgFontFace(MainWindow.Nvg, "sans");
+            NanoVG.nvgText(MainWindow.Nvg, 0, 0, s);
         }
 
         private bool ScreenContains(Node node)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using NanoVGDotNet;
 using Ned;
 using OpenTK.Graphics.OpenGL;
 using PFX.Util;
@@ -42,13 +43,13 @@ namespace Sandbox
             if (!Visible)
                 return;
 
-            GL.PushMatrix();
-            GL.Translate(X, Y, 0);
+            NanoVG.nvgSave(MainWindow.Nvg);
+            NanoVG.nvgTranslate(MainWindow.Nvg, X, Y);
             foreach (var menuItem in this)
                 menuItem.RenderBackground();
             foreach (var menuItem in this)
                 menuItem.Render();
-            GL.PopMatrix();
+            NanoVG.nvgRestore(MainWindow.Nvg);
         }
     }
 
@@ -87,40 +88,36 @@ namespace Sandbox
         public void Render()
         {
             var picked = Pick(_window.MouseScreenSpace.X, _window.MouseScreenSpace.Y);
-
-            GL.PushAttrib(AttribMask.EnableBit);
+            
             var lineHeight = (int) (_window.Font.Common.LineHeight * 1.5f);
-            GL.Disable(EnableCap.Texture2D);
-            GL.Color3(picked ? Color.LightGray : Color.White);
-            Fx.D2.DrawSolidRectangle(0, lineHeight * Index, Parent.Width, lineHeight);
-            GL.PushMatrix();
-            GL.Color3(Color.Black);
-            GL.Translate(3, lineHeight * Index + 3, 0);
-            GL.Enable(EnableCap.Texture2D);
+            NanoVG.nvgFillColor(MainWindow.Nvg, picked ? Color.LightGray.ToNvgColor() : Color.White.ToNvgColor());
+            NanoVG.nvgBeginPath(MainWindow.Nvg);
+            NanoVG.nvgRect(MainWindow.Nvg, 0, lineHeight * Index, Parent.Width, lineHeight);
+            NanoVG.nvgFill(MainWindow.Nvg);
+
+            NanoVG.nvgSave(MainWindow.Nvg);
+            NanoVG.nvgFillColor(MainWindow.Nvg, Color.Black.ToNvgColor());
+            NanoVG.nvgTranslate(MainWindow.Nvg, 3, lineHeight * Index + 3);
             if (Shortcut == null)
-            {
-                _window.Font.RenderString(Text);
-            }
+                NodeRenderer.RenderString(Text);
             else
             {
-                _window.Font.RenderString($"{Shortcut} {Text}");
-                GL.Color3(Color.DarkGray);
-                _window.Font.RenderString(Shortcut);
+                NodeRenderer.RenderString($"{Shortcut} {Text}");
+                NanoVG.nvgFillColor(MainWindow.Nvg, Color.DarkGray.ToNvgColor());
+                NodeRenderer.RenderString(Shortcut);
             }
 
-            GL.PopMatrix();
-            GL.PopAttrib();
+            NanoVG.nvgRestore(MainWindow.Nvg);
         }
 
         public void RenderBackground()
         {
-            GL.PushAttrib(AttribMask.EnableBit);
             var lineHeight = (int) (_window.Font.Common.LineHeight * 1.5f);
-            GL.Disable(EnableCap.Texture2D);
-            GL.Color3(Color.Black);
-            Fx.D2.DrawSolidRectangle(-1, lineHeight * Index - 1, Parent.Width + 2, lineHeight + 2);
-            Fx.D2.DrawSolidRectangle(1, lineHeight * Index + 1, Parent.Width + 1, lineHeight + 1);
-            GL.PopAttrib();
+            NanoVG.nvgFillColor(MainWindow.Nvg, Color.Black.ToNvgColor());
+            NanoVG.nvgBeginPath(MainWindow.Nvg);
+            NanoVG.nvgRect(MainWindow.Nvg, -1, lineHeight * Index - 1, Parent.Width + 2, lineHeight + 2);
+            NanoVG.nvgRect(MainWindow.Nvg, 1, lineHeight * Index + 1, Parent.Width + 1, lineHeight + 1);
+            NanoVG.nvgFill(MainWindow.Nvg);
         }
     }
 }

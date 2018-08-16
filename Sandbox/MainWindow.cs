@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.IO;
+using System.Linq;
 using System.Windows.Forms;
+using NanoVGDotNet;
 using Ned;
 using OpenTK;
 using OpenTK.Graphics;
@@ -18,6 +21,8 @@ namespace Sandbox
 {
     public class MainWindow : GameWindow
     {
+        public static NVGcontext Nvg = new NVGcontext();
+
         private readonly Dictionary<Node, Vector2> _draggingNodeOffset = new Dictionary<Node, Vector2>();
         private readonly Profiler _profiler = new Profiler();
         private readonly Color4 _selectionRectangleColor = new Color4(0, 0, 1, 0.1f);
@@ -43,7 +48,7 @@ namespace Sandbox
 
         public Graph Graph => DialogEditor.GetGraph();
 
-        public MainWindow() : base(800, 600)
+        public MainWindow() : base(800, 600, new GraphicsMode(new ColorFormat(32), 24, 8, 0))
         {
             // Wire up window
             Load += HandleLoad;
@@ -255,11 +260,15 @@ namespace Sandbox
             GL.Viewport(ClientRectangle);
 
             // Set up 2D mode
+            //            GL.MatrixMode(MatrixMode.Projection);
+            //            GL.LoadIdentity();
+            //            GL.Ortho(0, Width, Height, 0, -1000, 100);
+            //            GL.MatrixMode(MatrixMode.Modelview);
+            //            GL.LoadIdentity();
+
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
-            GL.Ortho(0, Width, Height, 0, -1000, 100);
-            GL.MatrixMode(MatrixMode.Modelview);
-            GL.LoadIdentity();
+            GL.Ortho(-1.0, 1.0, -1.0, 1.0, 0.0, 4.0);
         }
 
         public void Kill()
@@ -527,30 +536,26 @@ namespace Sandbox
                      ClearBufferMask.DepthBufferBit |
                      ClearBufferMask.StencilBufferBit);
 
-            GL.PushMatrix();
-            GL.Scale(Zoom, Zoom, 2);
+            //GL.PushMatrix();
+            NanoVG.nvgBeginFrame(Nvg, Width, Height, 1);
+            NanoVG.nvgSave(Nvg);
+            NanoVG.nvgScale(Nvg, Zoom, Zoom);
 
-            GL.Disable(EnableCap.Texture2D);
+            //_grid.Draw();
 
-            GL.PushMatrix();
-            GL.Translate(0, 0, -10);
+            NanoVG.nvgTranslate(Nvg, _grid.Offset.X, _grid.Offset.Y);
+            NanoVG.nvgStrokeWidth(Nvg, 2);
 
-            GL.Color3(Color.Gray);
-            GL.PointSize(1);
-
-            _grid.Draw();
-
-            GL.PopMatrix();
-
-            GL.Translate(_grid.Offset.X, _grid.Offset.Y, 0);
-            GL.LineWidth(2);
-
-            GL.Color3(Color.Black);
-            Fx.D2.DrawLine(-_grid.Pitch, 0, _grid.Pitch, 0);
-            Fx.D2.DrawLine(0, -_grid.Pitch, 0, _grid.Pitch);
+            NanoVG.nvgStrokeColor(Nvg, NanoVG.nvgRGBA(0, 0, 0, 255));
+            NanoVG.nvgBeginPath(Nvg);
+            NanoVG.nvgMoveTo(Nvg, -_grid.Pitch, 0);
+            NanoVG.nvgLineTo(Nvg, _grid.Pitch, 0);
+            NanoVG.nvgMoveTo(Nvg, 0, -_grid.Pitch);
+            NanoVG.nvgLineTo(Nvg, 0, _grid.Pitch);
+            NanoVG.nvgStroke(Nvg);
 
             const int cxnLineWidth = 3;
-            GL.LineWidth(cxnLineWidth);
+            NanoVG.nvgStrokeWidth(Nvg, cxnLineWidth);
             if (Selection.DraggingConnection != null)
             {
                 var end = _mouseCanvasSpace;
@@ -562,52 +567,55 @@ namespace Sandbox
                     end = new Vector2(b.X, b.Y);
                 }
 
-                GL.Color3(Color.Gray);
                 _nodeRenderer.RenderConnection(Selection.DraggingConnection, end);
-                Fx.D2.DrawSolidCircle(end.X, end.Y, cxnLineWidth);
             }
 
             foreach (var node in Graph)
-            {
-                _nodeRenderer.RenderNode(node);
                 _nodeRenderer.RenderConnections(node);
+
+            foreach (var node in Graph)
+                _nodeRenderer.RenderNode(node);
+            
+            if (Selection.SelectionRectangle != null && Selection.SelectionRectangle.Width != 0 && Selection.SelectionRectangle.Height != 0)
+            {
+                NanoVG.nvgFillColor(Nvg, _selectionRectangleColor.ToNvgColor());
+                NanoVG.nvgBeginPath(Nvg);
+                var r = Selection.SelectionRectangle;
+                var x = Math.Min(r.X, r.X + r.Width);
+                var y = Math.Min(r.Y, r.Y + r.Height);
+                var w = Math.Abs(r.Width);
+                var h = Math.Abs(r.Height);
+                NanoVG.nvgRect(Nvg, x, y, w, h);
+                NanoVG.nvgFill(Nvg);
             }
-
-            GL.Disable(EnableCap.DepthTest);
-            GL.Color4(_selectionRectangleColor);
-            if (Selection.SelectionRectangle != null)
-                Fx.D2.DrawSolidRectangle(Selection.SelectionRectangle.X, Selection.SelectionRectangle.Y,
-                    Selection.SelectionRectangle.Width, Selection.SelectionRectangle.Height);
-
-            GL.PopMatrix();
-
-            GL.Enable(EnableCap.Texture2D);
+            NanoVG.nvgRestore(Nvg);
 
             _contextMenu.Render();
+//
+//            GL.Color4(0, 0, 0, 1f);
+//            if (Keyboard[Key.D] && Focused && TextBoxHandler.TextBox == null)
+//            {
+//                // Static diagnostic header
+//                GL.PushMatrix();
+//                Font.RenderString($"FPS: {(int) Math.Round(RenderFrequency)}\n" +
+//                                  $"Render Time: {(int) _profile["render"].TotalMilliseconds}ms\n" +
+//                                  $"Zoom: {Zoom}\n" +
+//                                  $"Nodes: {Graph.Count}", false);
+//
+//                // Sparklines
+//                GL.Translate(5, (int) (Height - Font.Common.LineHeight * 1.4f * 2), 0);
+//                _fpsSparkline.Render(Color.Blue, Color.LimeGreen);
+//                GL.Translate(0, (int) (Font.Common.LineHeight * 1.4f), 0);
+//                _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
+//                GL.PopMatrix();
+//            }
+//
+//            GL.Disable(EnableCap.Texture2D);
+//            GL.Enable(EnableCap.DepthTest);
+//
+//            GL.PopMatrix();
 
-            GL.Color4(0, 0, 0, 1f);
-            if (Keyboard[Key.D] && Focused && TextBoxHandler.TextBox == null)
-            {
-                // Static diagnostic header
-                GL.PushMatrix();
-                Font.RenderString($"FPS: {(int) Math.Round(RenderFrequency)}\n" +
-                                  $"Render Time: {(int) _profile["render"].TotalMilliseconds}ms\n" +
-                                  $"Zoom: {Zoom}\n" +
-                                  $"Nodes: {Graph.Count}", false);
-
-                // Sparklines
-                GL.Translate(5, (int) (Height - Font.Common.LineHeight * 1.4f * 2), 0);
-                _fpsSparkline.Render(Color.Blue, Color.LimeGreen);
-                GL.Translate(0, (int) (Font.Common.LineHeight * 1.4f), 0);
-                _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
-                GL.PopMatrix();
-            }
-
-            GL.Disable(EnableCap.Texture2D);
-            GL.Enable(EnableCap.DepthTest);
-
-            GL.PopMatrix();
-
+            NanoVG.nvgEndFrame(Nvg);
             // Swap the graphics buffer
             SwapBuffers();
 
@@ -624,21 +632,21 @@ namespace Sandbox
         private static void SetupOpenGl()
         {
             // Set up caps
-            GL.Enable(EnableCap.DepthTest);
+            GL.Disable(EnableCap.DepthTest);
             GL.Enable(EnableCap.RescaleNormal);
 
             // Set up blending
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-            GL.Enable(EnableCap.LineSmooth);
-            GL.Hint(HintTarget.LineSmoothHint, HintMode.Nicest);
-            GL.Enable(EnableCap.PolygonSmooth);
-            GL.Hint(HintTarget.PolygonSmoothHint, HintMode.Nicest);
-            GL.Enable(EnableCap.PointSmooth);
-            GL.Hint(HintTarget.PointSmoothHint, HintMode.Nicest);
 
             // Set background color
             GL.ClearColor(Color.White);
+
+            GlNanoVG.nvgCreateGL(ref Nvg, (int)NvgCreateFlags.AntiAlias | (int)NvgCreateFlags.StencilStrokes);
+            var rSans = NanoVG.nvgCreateFont(Nvg, "sans",
+                $"Resources{Path.DirectorySeparatorChar}Fonts{Path.DirectorySeparatorChar}latosemi.ttf");
+            if (rSans == -1)
+                Lumberjack.Error("Unable to load sans");
         }
 
         private void SetZoom(int zoomIdx)
@@ -653,6 +661,8 @@ namespace Sandbox
 
         private void Update(object sender, FrameEventArgs e)
         {
+            Title = $"FPS: {Math.Round(RenderFrequency)} | RenderTime: {Math.Round(_renderTimeSparkline.ElementAt(_renderTimeSparkline.Count - 1))}ms";
+
             // Grab the new keyboard state
             Keyboard = OpenTK.Input.Keyboard.GetState();
 
@@ -662,6 +672,10 @@ namespace Sandbox
             MarchingAnts.March();
 
             Selection.HoveringConnection = Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y);
+
+            var err = GL.GetError();
+            if (err != ErrorCode.NoError)
+                Lumberjack.Error(err.ToString());
         }
     }
 }
