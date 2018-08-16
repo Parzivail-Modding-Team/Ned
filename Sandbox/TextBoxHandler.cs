@@ -27,7 +27,7 @@ namespace Sandbox
 
             foreach (var output in pickedNode.Outputs)
             {
-                var s = window.Font.MeasureString(output.Text);
+                var s = NvgHelper.MeasureString(output.Text);
                 var bound = output.GetBounds();
                 var r = bound.Radius;
                 var twor = 2 * r;
@@ -44,7 +44,7 @@ namespace Sandbox
 
         public static void StartEditing(MainWindow window, Connection output)
         {
-            var s = window.Font.MeasureString(output.Text);
+            var s = NvgHelper.MeasureString(output.Text);
             var bound = output.GetBounds();
             var r = bound.Radius;
             var twor = 2 * r;

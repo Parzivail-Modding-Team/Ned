@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
+using NanoVGDotNet;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
@@ -85,27 +86,25 @@ namespace Sandbox
 
         private void DrawForegroundText(string s)
         {
-            GL.Color3(ForegroundColor);
-
             if (SelectionStart == -1 || SelectionEnd == -1)
             {
-                _window.Font.RenderString(s);
+                NanoVG.nvgFillColor(MainWindow.Nvg, ForegroundColor.ToNvgColor());
+                NvgHelper.RenderString(s);
             }
             else
             {
-                var selWidth =
-                    _window.Font.MeasureString(Text.Substring(SelectionStart, SelectionEnd - SelectionStart)).Width;
-
-                GL.Color3(Color.DodgerBlue);
-                GL.Disable(EnableCap.Texture2D);
-                Fx.D2.DrawSolidRectangle(_window.Font.MeasureString(Text.Substring(0, SelectionStart)).Width, 0,
-                    selWidth, _window.Font.Common.LineHeight);
-
-                GL.Translate(0, 0, 0.01);
-
-                GL.Color3(ForegroundColor);
-                GL.Enable(EnableCap.Texture2D);
-                _window.Font.RenderString(s);
+//                var selWidth = NvgHelper.MeasureString(Text.Substring(SelectionStart, SelectionEnd - SelectionStart)).Width;
+//
+//                GL.Color3(Color.DodgerBlue);
+//                GL.Disable(EnableCap.Texture2D);
+//                Fx.D2.DrawSolidRectangle(NvgHelper.MeasureString(Text.Substring(0, SelectionStart)).Width, 0,
+//                    selWidth, _window.FontLineHeight);
+//
+//                GL.Translate(0, 0, 0.01);
+//
+//                GL.Color3(ForegroundColor);
+//                GL.Enable(EnableCap.Texture2D);
+//                NvgHelper.RenderString(s);
             }
         }
 
@@ -114,7 +113,7 @@ namespace Sandbox
             for (var i = 1; i < Text.Length; i++)
             {
                 var substr = Text.Substring(0, i);
-                var textLateral = _window.Font.MeasureString(substr).Width - GetTextShift();
+                var textLateral = NvgHelper.MeasureString(substr).Width - GetTextShift();
                 if (!(textLateral > mouseLateral)) continue;
                 return i;
             }
@@ -124,7 +123,7 @@ namespace Sandbox
 
         private int GetTextShift()
         {
-            var textSize = _window.Font.MeasureString(Text.Substring(0, CursorPos));
+            var textSize = NvgHelper.MeasureString(Text.Substring(0, CursorPos));
             var shiftLeft = 0;
 
             var width = BoundingBox.Width - 10;
@@ -242,58 +241,45 @@ namespace Sandbox
 
         public void RenderBackground()
         {
-            GL.PushMatrix();
-            GL.PushAttrib(AttribMask.EnableBit);
-            GL.Disable(EnableCap.Texture2D);
-
-            GL.Color3(ForegroundColor);
-            Fx.D2.DrawSolidRectangle(BoundingBox.X - 1, BoundingBox.Y - 1, BoundingBox.Width + 2,
-                BoundingBox.Height + 2);
-            GL.Translate(0, 0, 0.01);
-            GL.Color3(BackgroundColor);
-            Fx.D2.DrawSolidRectangle(BoundingBox.X, BoundingBox.Y, BoundingBox.Width, BoundingBox.Height);
+            NanoVG.nvgSave(MainWindow.Nvg);
+            
+            NanoVG.nvgStrokeWidth(MainWindow.Nvg, 1);
+            NanoVG.nvgFillColor(MainWindow.Nvg, BackgroundColor.ToNvgColor());
+            NanoVG.nvgStrokeColor(MainWindow.Nvg, ForegroundColor.ToNvgColor());
+            NanoVG.nvgBeginPath(MainWindow.Nvg);
+            NanoVG.nvgRect(MainWindow.Nvg, BoundingBox.X, BoundingBox.Y, BoundingBox.Width, BoundingBox.Height);
+            NanoVG.nvgFill(MainWindow.Nvg);
+            NanoVG.nvgStroke(MainWindow.Nvg);
 
             if (DateTime.Now.Millisecond <= 500)
             {
                 var shiftLeft = GetTextShift();
 
-                GL.Translate(BoundingBox.X + 4 - shiftLeft,
-                    BoundingBox.Y + (int) ((BoundingBox.Height - _window.Font.Common.LineHeight) / 2f), 0);
-                var size = _window.Font.MeasureString(Text.Substring(0, CursorPos));
+                NanoVG.nvgTranslate(MainWindow.Nvg, BoundingBox.X + 4 - shiftLeft,
+                    BoundingBox.Y + (int) ((BoundingBox.Height - _window.FontLineHeight) / 2f));
+                var size = NvgHelper.MeasureString(Text.Substring(0, CursorPos));
 
-                GL.Translate(0, 0, 0.01);
-
-                GL.Color3(ForegroundColor);
-                Fx.D2.DrawSolidRectangle((int) size.Width + 1, 0, 2, _window.Font.Common.LineHeight);
+                NanoVG.nvgFillColor(MainWindow.Nvg, ForegroundColor.ToNvgColor());
+                NanoVG.nvgBeginPath(MainWindow.Nvg);
+                NanoVG.nvgRect(MainWindow.Nvg, (int) size.Width, 0, 2, _window.FontLineHeight);
+                NanoVG.nvgFill(MainWindow.Nvg);
             }
 
-            GL.PopAttrib();
-            GL.PopMatrix();
+            NanoVG.nvgRestore(MainWindow.Nvg);
         }
 
         public void RenderForeground()
         {
-            GL.PushMatrix();
-            GL.PushAttrib(AttribMask.EnableBit);
-            GL.Enable(EnableCap.Texture2D);
+            NanoVG.nvgSave(MainWindow.Nvg);
             var shiftLeft = GetTextShift();
 
-            GL.Enable(EnableCap.ScissorTest);
-
-            var topLeft = new Vector2(BoundingBox.X + 2, BoundingBox.Y + 2);
-            var bottomRight = topLeft + new Vector2(BoundingBox.Width - 4, BoundingBox.Height - 4);
-
-            topLeft = _window.CanvasToScreenSpace(topLeft);
-            bottomRight = _window.CanvasToScreenSpace(bottomRight);
-
-            bottomRight -= topLeft;
-
-            Fx.Util.Scissor(_window, (int) topLeft.X, (int) topLeft.Y, (int) bottomRight.X, (int) bottomRight.Y);
-            GL.Translate(BoundingBox.X + 4 - shiftLeft,
-                BoundingBox.Y + (int) ((BoundingBox.Height - _window.Font.Common.LineHeight) / 2f), 0.01);
+            NanoVG.nvgScissor(MainWindow.Nvg, BoundingBox.X + 2, BoundingBox.Y + 2, BoundingBox.Width - 4, BoundingBox.Height - 4);
+            NanoVG.nvgTranslate(MainWindow.Nvg, BoundingBox.X + 4 - shiftLeft,
+                BoundingBox.Y + (int) ((BoundingBox.Height - _window.FontLineHeight) / 2f));
             DrawForegroundText(Text);
-            GL.PopAttrib();
-            GL.PopMatrix();
+            NanoVG.nvgResetScissor(MainWindow.Nvg);
+            
+            NanoVG.nvgRestore(MainWindow.Nvg);
         }
     }
 }

@@ -49,15 +49,15 @@ namespace Sandbox
             var width = 120;
             const int textPadding = 40;
 
-            width = (int) Math.Max(_window.Font.MeasureString(node.Name).Width + textPadding, width);
+            width = (int)Math.Max(NvgHelper.MeasureString(node.Name).Width + textPadding, width);
 
             if (node.Input != null)
-                width = (int) Math.Max(_window.Font.MeasureString(node.Input.Text).Width + textPadding, width);
+                width = (int)Math.Max(NvgHelper.MeasureString(node.Input.Text).Width + textPadding, width);
 
             foreach (var connection in node.Outputs)
-                width = (int) Math.Max(_window.Font.MeasureString(connection.Text).Width + textPadding, width);
+                width = (int)Math.Max(NvgHelper.MeasureString(connection.Text).Width + textPadding, width);
 
-            width = (int) (Math.Ceiling(width / (float) _grid.Pitch) * _grid.Pitch);
+            width = (int)(Math.Ceiling(width / (float)_grid.Pitch) * _grid.Pitch);
 
             return width;
         }
@@ -122,12 +122,12 @@ namespace Sandbox
                 {
                     case NodeSide.Input:
                         NanoVG.nvgTranslate(MainWindow.Nvg, bound.X + twor, bound.Y - r);
-                        RenderString(connection.Text);
+                        NvgHelper.RenderString(connection.Text);
                         break;
                     case NodeSide.Output:
                         var s = connection.Text;
-                        NanoVG.nvgTranslate(MainWindow.Nvg, bound.X - twor - _window.Font.MeasureString(s).Width, bound.Y - r);
-                        RenderString(s);
+                        NanoVG.nvgTranslate(MainWindow.Nvg, bound.X - twor - NvgHelper.MeasureString(s).Width, bound.Y - r);
+                        NvgHelper.RenderString(s);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -135,19 +135,18 @@ namespace Sandbox
             }
             else
             {
-                // TODO
-                //TextBoxHandler.TextBox.RenderBackground();
-                //TextBoxHandler.TextBox.RenderForeground();
+                TextBoxHandler.TextBox.RenderBackground();
+                TextBoxHandler.TextBox.RenderForeground();
             }
 
             NanoVG.nvgRestore(MainWindow.Nvg);
-            
+
             NanoVG.nvgFillColor(MainWindow.Nvg, Color.DarkSlateGray.ToNvgColor());
 
             NanoVG.nvgBeginPath(MainWindow.Nvg);
             NanoVG.nvgCircle(MainWindow.Nvg, bound.X, bound.Y, r + cxnBorderWidth);
             NanoVG.nvgFill(MainWindow.Nvg);
-            
+
             NanoVG.nvgFillColor(MainWindow.Nvg, connection.Side == NodeSide.Input ? Color.DeepSkyBlue.ToNvgColor() : Color.LimeGreen.ToNvgColor());
             NanoVG.nvgBeginPath(MainWindow.Nvg);
             NanoVG.nvgCircle(MainWindow.Nvg, bound.X, bound.Y, r);
@@ -166,7 +165,7 @@ namespace Sandbox
             if (pickedForDeletion)
             {
                 NanoVG.nvgFillColor(MainWindow.Nvg, Color.Red.ToNvgColor());
-                
+
                 NanoVG.nvgBeginPath(MainWindow.Nvg);
                 NanoVG.nvgCircle(MainWindow.Nvg, bound.X, bound.Y, halfr);
                 NanoVG.nvgFill(MainWindow.Nvg);
@@ -183,46 +182,37 @@ namespace Sandbox
             const int panelInset = 2;
             const float halfPanelInset = panelInset / 2f;
 
-            var headerHeight = (int) (_window.Font.Common.LineHeight * 1.2f);
-            var oneCanvasPixel = 1 / _window.Zoom;
+            var headerHeight = (int)(_window.FontLineHeight * 1.2f);
 
             NanoVG.nvgSave(MainWindow.Nvg);
 
             if (_window.Selection.SelectedNodes.Contains(node))
             {
-                // TODO
-//                GL.Color3(Color.White);
-//                Fx.D2.DrawSolidRoundRectangle(node.X - oneCanvasPixel, node.Y - oneCanvasPixel,
-//                    node.Width + 2 * oneCanvasPixel,
-//                    node.Height + 2 * oneCanvasPixel, borderRadius, borderRadius, borderRadius, borderRadius);
-//                GL.Translate(0, 0, 0.01);
-//                GL.Color3(Color.Black);
-//                MarchingAnts.Use();
-//                Fx.D2.DrawSolidRoundRectangle(node.X - oneCanvasPixel, node.Y - oneCanvasPixel,
-//                    node.Width + 2 * oneCanvasPixel,
-//                    node.Height + 2 * oneCanvasPixel, borderRadius, borderRadius, borderRadius, borderRadius);
-//                MarchingAnts.Release();
+                NanoVG.nvgFillColor(MainWindow.Nvg, Color.Black.ToNvgColor());
+                NanoVG.nvgBeginPath(MainWindow.Nvg);
+                NanoVG.nvgRoundedRect(MainWindow.Nvg, node.X - panelInset - 2, node.Y - 2, node.Width + 2 * (2 + panelInset), node.Height + 4, borderRadius + 2);
+                NanoVG.nvgFill(MainWindow.Nvg);
             }
-            
+
             NanoVG.nvgFillColor(MainWindow.Nvg, _colorMap.ContainsKey(node.NodeInfo) ? _colorMap[node.NodeInfo] : NanoVG.nvgRGBA(0, 0, 0, 255));
-            
+
             NanoVG.nvgBeginPath(MainWindow.Nvg);
-            NanoVG.nvgRoundedRect(MainWindow.Nvg, node.X, node.Y, node.Width, node.Height, borderRadius);
+            NanoVG.nvgRoundedRect(MainWindow.Nvg, node.X - panelInset, node.Y, node.Width + 2 * panelInset, node.Height, borderRadius);
             NanoVG.nvgFill(MainWindow.Nvg);
 
             NanoVG.nvgFillColor(MainWindow.Nvg, Color.DarkSlateGray.ToNvgColor());
             NanoVG.nvgBeginPath(MainWindow.Nvg);
-            NanoVG.nvgRoundedRect(MainWindow.Nvg, node.X + panelInset, node.Y + headerHeight + panelInset,
-                node.Width - 2 * panelInset, node.Height - headerHeight - 2 * panelInset,
+            NanoVG.nvgRoundedRect(MainWindow.Nvg, node.X, node.Y + headerHeight + panelInset,
+                node.Width, node.Height - headerHeight - 2 * panelInset,
                 borderRadius - halfPanelInset);
             NanoVG.nvgFill(MainWindow.Nvg);
-            
+
             NanoVG.nvgFillColor(MainWindow.Nvg, Color.White.ToNvgColor());
 
             NanoVG.nvgSave(MainWindow.Nvg);
-            var headerOffset = (headerHeight + panelInset) / 2f - _window.Font.MeasureString(node.Name).Height / 2;
-            NanoVG.nvgTranslate(MainWindow.Nvg, (int) (node.X + 2 * panelInset), (int) (node.Y + headerOffset));
-            RenderString(node.Name);
+            var headerOffset = (headerHeight + panelInset) / 2f - NvgHelper.MeasureString(node.Name).Height / 2;
+            NanoVG.nvgTranslate(MainWindow.Nvg, (int)(node.X + 2 * panelInset), (int)(node.Y + headerOffset));
+            NvgHelper.RenderString(node.Name);
             NanoVG.nvgRestore(MainWindow.Nvg);
 
             if (node.Input != null)
@@ -231,17 +221,6 @@ namespace Sandbox
             foreach (var nodeOutput in node.Outputs)
                 RenderConnector(nodeOutput);
             NanoVG.nvgRestore(MainWindow.Nvg);
-        }
-
-        public static void RenderString(string s)
-        {
-            if (string.IsNullOrWhiteSpace(s))
-                return;
-
-            NanoVG.nvgTextAlign(MainWindow.Nvg, (int)NvgAlign.Top | (int)NvgAlign.Left);
-            NanoVG.nvgFontSize(MainWindow.Nvg, 16);
-            NanoVG.nvgFontFace(MainWindow.Nvg, "sans");
-            NanoVG.nvgText(MainWindow.Nvg, 0, 0, s);
         }
 
         private bool ScreenContains(Node node)

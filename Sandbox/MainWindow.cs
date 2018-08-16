@@ -40,11 +40,12 @@ namespace Sandbox
         private int _zoomIdx = 5;
 
         public FormDialogueEditor DialogEditor;
-        public BitmapFont Font;
         public KeyboardState Keyboard;
         public Vector2 MouseScreenSpace = Vector2.Zero;
         public SelectionHandler Selection;
         public float Zoom => _zoomLevels[_zoomIdx];
+
+        public float FontLineHeight = 16;
 
         public Graph Graph => DialogEditor.GetGraph();
 
@@ -213,16 +214,13 @@ namespace Sandbox
         {
             SetupOpenGl();
 
-            // Load fonts
-            Font = BitmapFont.LoadBinaryFont("", FontBank.FontAlanaSans, FontBank.BmAlanaSans);
-
             // Load sparklines
             var tfreq = (int)TargetRenderFrequency;
             if (tfreq == 0)
                 tfreq = (int)DisplayDevice.GetDisplay(DisplayIndex.Default).RefreshRate;
-            _fpsSparkline = new Sparkline(Font, $"0-{tfreq}fps", 50,
+            _fpsSparkline = new Sparkline(null, $"0-{tfreq}fps", 50,
                 tfreq, Sparkline.SparklineStyle.Area);
-            _renderTimeSparkline = new Sparkline(Font, "0-50ms", 50, 50, Sparkline.SparklineStyle.Area);
+            _renderTimeSparkline = new Sparkline(null, "0-50ms", 50, 50, Sparkline.SparklineStyle.Area);
 
             // Init keyboard to ensure first frame won't NPE
             Keyboard = OpenTK.Input.Keyboard.GetState();
@@ -258,13 +256,6 @@ namespace Sandbox
         private void HandleResize(object sender, EventArgs e)
         {
             GL.Viewport(ClientRectangle);
-
-            // Set up 2D mode
-            //            GL.MatrixMode(MatrixMode.Projection);
-            //            GL.LoadIdentity();
-            //            GL.Ortho(0, Width, Height, 0, -1000, 100);
-            //            GL.MatrixMode(MatrixMode.Modelview);
-            //            GL.LoadIdentity();
 
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
@@ -474,7 +465,7 @@ namespace Sandbox
 
             foreach (var output in pickedNode.Outputs)
             {
-                var s = Font.MeasureString(output.Text);
+                var s = NvgHelper.MeasureString(output.Text);
                 var bound = output.GetBounds();
                 var r = bound.Radius;
                 var twor = 2 * r;
@@ -547,9 +538,13 @@ namespace Sandbox
             NanoVG.nvgStrokeWidth(Nvg, 2);
 
             NanoVG.nvgStrokeColor(Nvg, NanoVG.nvgRGBA(0, 0, 0, 255));
+
             NanoVG.nvgBeginPath(Nvg);
             NanoVG.nvgMoveTo(Nvg, -_grid.Pitch, 0);
             NanoVG.nvgLineTo(Nvg, _grid.Pitch, 0);
+            NanoVG.nvgStroke(Nvg);
+
+            NanoVG.nvgBeginPath(Nvg);
             NanoVG.nvgMoveTo(Nvg, 0, -_grid.Pitch);
             NanoVG.nvgLineTo(Nvg, 0, _grid.Pitch);
             NanoVG.nvgStroke(Nvg);
@@ -591,29 +586,24 @@ namespace Sandbox
             NanoVG.nvgRestore(Nvg);
 
             _contextMenu.Render();
-            //
-            //            GL.Color4(0, 0, 0, 1f);
-            //            if (Keyboard[Key.D] && Focused && TextBoxHandler.TextBox == null)
-            //            {
-            //                // Static diagnostic header
-            //                GL.PushMatrix();
-            //                Font.RenderString($"FPS: {(int) Math.Round(RenderFrequency)}\n" +
-            //                                  $"Render Time: {(int) _profile["render"].TotalMilliseconds}ms\n" +
-            //                                  $"Zoom: {Zoom}\n" +
-            //                                  $"Nodes: {Graph.Count}", false);
-            //
-            //                // Sparklines
-            //                GL.Translate(5, (int) (Height - Font.Common.LineHeight * 1.4f * 2), 0);
-            //                _fpsSparkline.Render(Color.Blue, Color.LimeGreen);
-            //                GL.Translate(0, (int) (Font.Common.LineHeight * 1.4f), 0);
-            //                _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
-            //                GL.PopMatrix();
-            //            }
-            //
-            //            GL.Disable(EnableCap.Texture2D);
-            //            GL.Enable(EnableCap.DepthTest);
-            //
-            //            GL.PopMatrix();
+
+            GL.Color4(0, 0, 0, 1f);
+            if (Keyboard[Key.D] && Focused && TextBoxHandler.TextBox == null)
+            {
+                // Static diagnostic header
+                NanoVG.nvgSave(Nvg);
+                NanoVG.nvgFillColor(Nvg, Color.Black.ToNvgColor());
+                NvgHelper.RenderString($"{Zoom}x Zoom");
+                NanoVG.nvgTranslate(Nvg, 0, FontLineHeight);
+                NvgHelper.RenderString($"{Graph.Count} Nodes");
+
+                // Sparklines
+                //                GL.Translate(5, (int)(Height - Font.Common.LineHeight * 1.4f * 2), 0);
+                //                _fpsSparkline.Render(Color.Blue, Color.LimeGreen);
+                //                GL.Translate(0, (int)(Font.Common.LineHeight * 1.4f), 0);
+                //                _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
+                NanoVG.nvgRestore(Nvg);
+            }
 
             NanoVG.nvgEndFrame(Nvg);
             // Swap the graphics buffer
@@ -662,7 +652,7 @@ namespace Sandbox
         private void Update(object sender, FrameEventArgs e)
         {
             if (_renderTimeSparkline.Count > 0)
-                Title = $"FPS: {Math.Round(RenderFrequency)} | RenderTime: {Math.Round(_renderTimeSparkline.ElementAt(_renderTimeSparkline.Count - 1))}ms";
+                Title = $"FPS: {Math.Round(RenderFrequency)} | RenderTime: {Math.Round(_profile["render"].TotalMilliseconds)}ms";
 
             // Grab the new keyboard state
             Keyboard = OpenTK.Input.Keyboard.GetState();

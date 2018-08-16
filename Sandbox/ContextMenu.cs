@@ -62,7 +62,7 @@ namespace Sandbox
         public Action<ContextMenuItem> Action { get; }
         public int Index { get; set; }
         public ContextMenu Parent { get; set; }
-        public float Width => _window.Font.MeasureString($"{Shortcut} {Text}").Width;
+        public float Width => NvgHelper.MeasureString($"{Shortcut} {Text}").Width;
 
         public ContextMenuItem(MainWindow window, string text, Action<ContextMenuItem> action)
         {
@@ -81,7 +81,7 @@ namespace Sandbox
 
         public bool Pick(float x, float y)
         {
-            var lineHeight = (int) (_window.Font.Common.LineHeight * 1.5f);
+            var lineHeight = (int) (_window.FontLineHeight * 1.5f);
             return new Rectangle(Parent.X, Parent.Y + lineHeight * Index, Parent.Width, lineHeight).Pick(x, y);
         }
 
@@ -89,7 +89,7 @@ namespace Sandbox
         {
             var picked = Pick(_window.MouseScreenSpace.X, _window.MouseScreenSpace.Y);
             
-            var lineHeight = (int) (_window.Font.Common.LineHeight * 1.5f);
+            var lineHeight = (int) (_window.FontLineHeight * 1.5f);
             NanoVG.nvgFillColor(MainWindow.Nvg, picked ? Color.LightGray.ToNvgColor() : Color.White.ToNvgColor());
             NanoVG.nvgBeginPath(MainWindow.Nvg);
             NanoVG.nvgRect(MainWindow.Nvg, 0, lineHeight * Index, Parent.Width, lineHeight);
@@ -99,12 +99,12 @@ namespace Sandbox
             NanoVG.nvgFillColor(MainWindow.Nvg, Color.Black.ToNvgColor());
             NanoVG.nvgTranslate(MainWindow.Nvg, 3, lineHeight * Index + 3);
             if (Shortcut == null)
-                NodeRenderer.RenderString(Text);
+                NvgHelper.RenderString(Text);
             else
             {
-                NodeRenderer.RenderString($"{Shortcut} {Text}");
+                NvgHelper.RenderString($"{Shortcut} {Text}");
                 NanoVG.nvgFillColor(MainWindow.Nvg, Color.DarkGray.ToNvgColor());
-                NodeRenderer.RenderString(Shortcut);
+                NvgHelper.RenderString(Shortcut);
             }
 
             NanoVG.nvgRestore(MainWindow.Nvg);
@@ -112,7 +112,7 @@ namespace Sandbox
 
         public void RenderBackground()
         {
-            var lineHeight = (int) (_window.Font.Common.LineHeight * 1.5f);
+            var lineHeight = (int) (_window.FontLineHeight * 1.5f);
             NanoVG.nvgFillColor(MainWindow.Nvg, Color.Black.ToNvgColor());
             NanoVG.nvgBeginPath(MainWindow.Nvg);
             NanoVG.nvgRect(MainWindow.Nvg, -1, lineHeight * Index - 1, Parent.Width + 2, lineHeight + 2);
