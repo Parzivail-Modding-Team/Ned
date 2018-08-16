@@ -26,7 +26,7 @@ namespace Sandbox
         private readonly Dictionary<Node, Vector2> _draggingNodeOffset = new Dictionary<Node, Vector2>();
         private readonly Profiler _profiler = new Profiler();
         private readonly Color4 _selectionRectangleColor = new Color4(0, 0, 1, 0.1f);
-        private readonly float[] _zoomLevels = {0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1, 2, 3, 4};
+        private readonly float[] _zoomLevels = { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1, 2, 3, 4 };
         private ContextMenu _contextMenu;
         private bool _draggingBackground;
         private Func<Connection, bool> _draggingConnectionPredicate;
@@ -217,9 +217,9 @@ namespace Sandbox
             Font = BitmapFont.LoadBinaryFont("", FontBank.FontAlanaSans, FontBank.BmAlanaSans);
 
             // Load sparklines
-            var tfreq = (int) TargetRenderFrequency;
+            var tfreq = (int)TargetRenderFrequency;
             if (tfreq == 0)
-                tfreq = (int) DisplayDevice.GetDisplay(DisplayIndex.Default).RefreshRate;
+                tfreq = (int)DisplayDevice.GetDisplay(DisplayIndex.Default).RefreshRate;
             _fpsSparkline = new Sparkline(Font, $"0-{tfreq}fps", 50,
                 tfreq, Sparkline.SparklineStyle.Area);
             _renderTimeSparkline = new Sparkline(Font, "0-50ms", 50, 50, Sparkline.SparklineStyle.Area);
@@ -414,8 +414,8 @@ namespace Sandbox
 
                     if (!Keyboard[Key.ShiftLeft])
                     {
-                        node.X = (int) (Math.Floor(node.X / _grid.Pitch) * _grid.Pitch);
-                        node.Y = (int) (Math.Floor(node.Y / _grid.Pitch) * _grid.Pitch);
+                        node.X = (int)(Math.Floor(node.X / _grid.Pitch) * _grid.Pitch);
+                        node.Y = (int)(Math.Floor(node.Y / _grid.Pitch) * _grid.Pitch);
                     }
                 }
         }
@@ -527,9 +527,9 @@ namespace Sandbox
 
             // March sparklines
             if (_profile.ContainsKey("render"))
-                _renderTimeSparkline.Enqueue((float) _profile["render"].TotalMilliseconds);
+                _renderTimeSparkline.Enqueue((float)_profile["render"].TotalMilliseconds);
 
-            _fpsSparkline.Enqueue((float) RenderFrequency);
+            _fpsSparkline.Enqueue((float)RenderFrequency);
 
             // Reset the view
             GL.Clear(ClearBufferMask.ColorBufferBit |
@@ -575,7 +575,7 @@ namespace Sandbox
 
             foreach (var node in Graph)
                 _nodeRenderer.RenderNode(node);
-            
+
             if (Selection.SelectionRectangle != null && Selection.SelectionRectangle.Width != 0 && Selection.SelectionRectangle.Height != 0)
             {
                 NanoVG.nvgFillColor(Nvg, _selectionRectangleColor.ToNvgColor());
@@ -591,29 +591,29 @@ namespace Sandbox
             NanoVG.nvgRestore(Nvg);
 
             _contextMenu.Render();
-//
-//            GL.Color4(0, 0, 0, 1f);
-//            if (Keyboard[Key.D] && Focused && TextBoxHandler.TextBox == null)
-//            {
-//                // Static diagnostic header
-//                GL.PushMatrix();
-//                Font.RenderString($"FPS: {(int) Math.Round(RenderFrequency)}\n" +
-//                                  $"Render Time: {(int) _profile["render"].TotalMilliseconds}ms\n" +
-//                                  $"Zoom: {Zoom}\n" +
-//                                  $"Nodes: {Graph.Count}", false);
-//
-//                // Sparklines
-//                GL.Translate(5, (int) (Height - Font.Common.LineHeight * 1.4f * 2), 0);
-//                _fpsSparkline.Render(Color.Blue, Color.LimeGreen);
-//                GL.Translate(0, (int) (Font.Common.LineHeight * 1.4f), 0);
-//                _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
-//                GL.PopMatrix();
-//            }
-//
-//            GL.Disable(EnableCap.Texture2D);
-//            GL.Enable(EnableCap.DepthTest);
-//
-//            GL.PopMatrix();
+            //
+            //            GL.Color4(0, 0, 0, 1f);
+            //            if (Keyboard[Key.D] && Focused && TextBoxHandler.TextBox == null)
+            //            {
+            //                // Static diagnostic header
+            //                GL.PushMatrix();
+            //                Font.RenderString($"FPS: {(int) Math.Round(RenderFrequency)}\n" +
+            //                                  $"Render Time: {(int) _profile["render"].TotalMilliseconds}ms\n" +
+            //                                  $"Zoom: {Zoom}\n" +
+            //                                  $"Nodes: {Graph.Count}", false);
+            //
+            //                // Sparklines
+            //                GL.Translate(5, (int) (Height - Font.Common.LineHeight * 1.4f * 2), 0);
+            //                _fpsSparkline.Render(Color.Blue, Color.LimeGreen);
+            //                GL.Translate(0, (int) (Font.Common.LineHeight * 1.4f), 0);
+            //                _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
+            //                GL.PopMatrix();
+            //            }
+            //
+            //            GL.Disable(EnableCap.Texture2D);
+            //            GL.Enable(EnableCap.DepthTest);
+            //
+            //            GL.PopMatrix();
 
             NanoVG.nvgEndFrame(Nvg);
             // Swap the graphics buffer
@@ -656,12 +656,13 @@ namespace Sandbox
 
             var size = new Vector2(Width, Height);
             _grid.Offset -= (size / zoomBefore - size / Zoom) / 2;
-            _grid.Offset = new Vector2((int) _grid.Offset.X, (int) _grid.Offset.Y);
+            _grid.Offset = new Vector2((int)_grid.Offset.X, (int)_grid.Offset.Y);
         }
 
         private void Update(object sender, FrameEventArgs e)
         {
-            Title = $"FPS: {Math.Round(RenderFrequency)} | RenderTime: {Math.Round(_renderTimeSparkline.ElementAt(_renderTimeSparkline.Count - 1))}ms";
+            if (_renderTimeSparkline.Count > 0)
+                Title = $"FPS: {Math.Round(RenderFrequency)} | RenderTime: {Math.Round(_renderTimeSparkline.ElementAt(_renderTimeSparkline.Count - 1))}ms";
 
             // Grab the new keyboard state
             Keyboard = OpenTK.Input.Keyboard.GetState();

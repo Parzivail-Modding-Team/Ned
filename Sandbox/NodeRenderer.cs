@@ -73,6 +73,8 @@ namespace Sandbox
             var bound = connection.GetBounds();
             var pos = new Vector2(bound.X, bound.Y);
             var v = new Vector2((pos - end).Length / 4, 0);
+            if (pos == end)
+                return;
             NanoVG.nvgSave(MainWindow.Nvg);
             NanoVG.nvgLineCap(MainWindow.Nvg, (int)NvgLineCap.Round);
             NanoVG.nvgStrokeColor(MainWindow.Nvg, NanoVG.nvgRGBA(128, 128, 128, 255));
