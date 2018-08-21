@@ -28,7 +28,7 @@ namespace Ned
                         b.Write(output.Text);
                         b.Write(output.ConnectedNode != null);
                         if (output.ConnectedNode != null)
-                            b.Write(output.ConnectedNode.Id.ToByteArray());
+                            b.Write(output.ConnectedNode.ParentNode.Id.ToByteArray());
                     }
                 }
             }

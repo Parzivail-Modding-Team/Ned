@@ -33,12 +33,10 @@ namespace Sandbox
         {
             if (efd.ShowDialog() != DialogResult.OK)
                 return;
-            FileName = efd.FileName;
 
-            Lumberjack.Info($"Exporting {FileName}...");
+            Lumberjack.Info($"Exporting {efd.FileName}...");
             NedExporter.Export(_graph, efd.FileName);
-            Lumberjack.Info($"Exporting {FileName}.");
-            _nodeEditor.Title = $"{string.Format(Resources.AppTitleWorking, efd.FileName)}  (beta-{Resources.Version})";
+            Lumberjack.Info($"Exporting {efd.FileName}.");
         }
 
         public void AskOpenFile()
