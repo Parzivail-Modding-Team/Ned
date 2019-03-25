@@ -1,4 +1,6 @@
 ﻿using System.IO;
+using System.Linq;
+using Newtonsoft.Json;
 
 namespace Ned
 {
@@ -32,6 +34,12 @@ namespace Ned
                     }
                 }
             }
+        }
+
+        public static void ExportJson(Graph graph, string filename)
+        {
+            var savedGraph = graph.Select(node => node.Export()).ToList();
+            File.WriteAllText(filename, JsonConvert.SerializeObject(savedGraph));
         }
     }
 }

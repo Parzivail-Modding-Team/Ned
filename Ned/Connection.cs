@@ -128,5 +128,14 @@ namespace Ned
                 CanEditName = CanEditName
             };
         }
+
+        internal ExportedConnection Export()
+        {
+            return new ExportedConnection
+            {
+                ConnectedNode = ConnectedNode?.ParentNode.Id,
+                Text = Text,
+            };
+        }
     }
 }

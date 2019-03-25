@@ -80,6 +80,7 @@
       <DependentUpon>FormDialogueEditor.cs</DependentUpon>
     </Compile>
     <Compile Include="GridRenderer.cs" />
+    <Compile Include="Lumberjack.cs" />
     <Compile Include="NvgHelper.cs" />
     <Compile Include="TextBoxHandler.cs" />
     <Compile Include="KeybindHandler.cs" />
@@ -116,10 +117,6 @@
     <ProjectReference Include="..\Ned\Ned.csproj">
       <Project>{8FDAC39B-3111-4530-9EC2-4230BB3FA33F}</Project>
       <Name>Ned</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\PFX\PFX.csproj">
-      <Project>{678260e9-7bef-4489-85c4-e57f53968912}</Project>
-      <Name>PFX</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

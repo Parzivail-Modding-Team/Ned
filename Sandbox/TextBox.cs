@@ -6,7 +6,6 @@ using NanoVGDotNet;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
-using PFX.Util;
 using MouseEventArgs = OpenTK.Input.MouseEventArgs;
 using Rectangle = Ned.Rectangle;
 

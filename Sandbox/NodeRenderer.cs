@@ -8,7 +8,6 @@ using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
-using PFX.Util;
 using Rectangle = Ned.Rectangle;
 
 namespace Sandbox

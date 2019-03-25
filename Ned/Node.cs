@@ -155,5 +155,15 @@ namespace Ned
                 Name = Name
             };
         }
+
+        internal ExportedNode Export()
+        {
+            return new ExportedNode
+            {
+                Type = NodeInfo.Type,
+                Id = Id,
+                Outputs = Outputs.Select(connection => connection.Export()).ToList(),
+            };
+        }
     }
 }

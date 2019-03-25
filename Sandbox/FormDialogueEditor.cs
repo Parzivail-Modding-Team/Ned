@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Windows.Forms;
 using Ned;
-using PFX;
 
 namespace Sandbox
 {
@@ -36,7 +35,17 @@ namespace Sandbox
 
             Lumberjack.Info($"Exporting {efd.FileName}...");
             NedExporter.Export(_graph, efd.FileName);
-            Lumberjack.Info($"Exporting {efd.FileName}.");
+            Lumberjack.Info($"Exported {efd.FileName}.");
+        }
+
+        public void AskExportJsonFile()
+        {
+            if (ejfd.ShowDialog() != DialogResult.OK)
+                return;
+
+            Lumberjack.Info($"Exporting {ejfd.FileName}...");
+            NedExporter.ExportJson(_graph, ejfd.FileName);
+            Lumberjack.Info($"Exported {ejfd.FileName}.");
         }
 
         public void AskOpenFile()

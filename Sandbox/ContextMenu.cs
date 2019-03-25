@@ -4,7 +4,6 @@ using System.Drawing;
 using NanoVGDotNet;
 using Ned;
 using OpenTK.Graphics.OpenGL;
-using PFX.Util;
 using Rectangle = Ned.Rectangle;
 
 namespace Sandbox

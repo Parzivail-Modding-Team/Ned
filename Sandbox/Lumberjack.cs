@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PFX
+namespace Sandbox
 {
     public class Lumberjack
     {
@@ -31,22 +31,14 @@ namespace PFX
             WriteLine(message, ConsoleColor.Yellow, OutputLevel.Warn, "WARN");
         }
 
-        public static void WriteLine(string message, ConsoleColor color, OutputLevel level, string header = "")
+        public static void WriteLine(string message, ConsoleColor color, OutputLevel level, string header)
         {
             if (TraceLevel > level)
                 return;
 
-            if (Console.ForegroundColor == color)
-            {
-                Console.WriteLine(Resources.Log_Format, DateTime.Now, header.Length > 0 ? " " + header : header,
-                    message);
-            }
-            else
-            {
+            if (Console.ForegroundColor != color)
                 Console.ForegroundColor = color;
-                Console.WriteLine(Resources.Log_Format, DateTime.Now, header.Length > 0 ? " " + header : header,
-                    message);
-            }
+            Console.WriteLine(Resources.Log_Format, DateTime.Now, header, message);
         }
     }
 

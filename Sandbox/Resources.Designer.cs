@@ -99,6 +99,15 @@ namespace Sandbox {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to [{0}] [{1}] {2}.
+        /// </summary>
+        internal static string Log_Format {
+            get {
+                return ResourceManager.GetString("Log_Format", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to 0.0.2.
         /// </summary>
         internal static string Version {

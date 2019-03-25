@@ -36,6 +36,7 @@
             this.ofd = new System.Windows.Forms.OpenFileDialog();
             this.sfd = new System.Windows.Forms.SaveFileDialog();
             this.efd = new System.Windows.Forms.SaveFileDialog();
+            this.ejfd = new System.Windows.Forms.SaveFileDialog();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -95,6 +96,11 @@
             this.efd.Filter = "Compiled Ned Digram|*.nedx";
             this.efd.Title = "Save";
             // 
+            // ejfd
+            // 
+            this.ejfd.Filter = "Compiled JSON Ned Digram|*.nedj";
+            this.ejfd.Title = "Save";
+            // 
             // FormDialogueEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -122,5 +128,6 @@
         private System.Windows.Forms.OpenFileDialog ofd;
         private System.Windows.Forms.SaveFileDialog sfd;
         private System.Windows.Forms.SaveFileDialog efd;
+        private System.Windows.Forms.SaveFileDialog ejfd;
     }
 }

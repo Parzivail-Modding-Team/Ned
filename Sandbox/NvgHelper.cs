@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using NanoVGDotNet;
 using OpenTK.Graphics;
-using PFX;
 
 namespace Sandbox
 {

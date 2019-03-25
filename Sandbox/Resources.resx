@@ -133,4 +133,7 @@
   <data name="Version" xml:space="preserve">
     <value>0.0.2</value>
   </data>
+  <data name="Log_Format" xml:space="preserve">
+    <value>[{0}] [{1}] {2}</value>
+  </data>
 </root>

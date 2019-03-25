@@ -11,9 +11,6 @@ using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
-using PFX;
-using PFX.BmFont;
-using PFX.Util;
 using KeyPressEventArgs = OpenTK.KeyPressEventArgs;
 using Rectangle = Ned.Rectangle;
 
@@ -24,18 +21,14 @@ namespace Sandbox
         public static NVGcontext Nvg = new NVGcontext();
 
         private readonly Dictionary<Node, Vector2> _draggingNodeOffset = new Dictionary<Node, Vector2>();
-        private readonly Profiler _profiler = new Profiler();
         private readonly Color4 _selectionRectangleColor = new Color4(0, 0, 1, 0.1f);
         private readonly float[] _zoomLevels = { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1, 2, 3, 4 };
         private ContextMenu _contextMenu;
         private bool _draggingBackground;
         private Func<Connection, bool> _draggingConnectionPredicate;
-        private Sparkline _fpsSparkline;
         private GridRenderer _grid;
         private Vector2 _mouseCanvasSpace = Vector2.Zero;
         private NodeRenderer _nodeRenderer;
-        private Dictionary<string, TimeSpan> _profile = new Dictionary<string, TimeSpan>();
-        private Sparkline _renderTimeSparkline;
         private bool _shouldDie;
         private int _zoomIdx = 5;
 
@@ -180,6 +173,7 @@ namespace Sandbox
 
                 if (context.NodeInfo.CanEditConnectors)
                 {
+                    if (context.NodeInfo.Type == NodeInfo.PlayerDialogue.Type)
                     _contextMenu.Add(new ContextMenuItem(this, "CTRL+Plus", "Add Connection",
                         item => AddOutput(context)));
 
@@ -214,14 +208,6 @@ namespace Sandbox
         {
             SetupOpenGl();
 
-            // Load sparklines
-            var tfreq = (int)TargetRenderFrequency;
-            if (tfreq == 0)
-                tfreq = (int)DisplayDevice.GetDisplay(DisplayIndex.Default).RefreshRate;
-            _fpsSparkline = new Sparkline(null, $"0-{tfreq}fps", 50,
-                tfreq, Sparkline.SparklineStyle.Area);
-            _renderTimeSparkline = new Sparkline(null, "0-50ms", 50, 50, Sparkline.SparklineStyle.Area);
-
             // Init keyboard to ensure first frame won't NPE
             Keyboard = OpenTK.Input.Keyboard.GetState();
 
@@ -248,7 +234,7 @@ namespace Sandbox
             var keybinds = KeybindHandler.GetKeybinds();
             Lumberjack.Info("Keybinds:");
             foreach (var keyCombo in keybinds)
-                Lumberjack.WriteLine(keyCombo.ToString(), ConsoleColor.Blue, OutputLevel.Info, "KEYS");
+                Lumberjack.Info($"- {keyCombo}");
 
             Lumberjack.Info("Window Loaded.");
         }
@@ -509,19 +495,12 @@ namespace Sandbox
                 () => DialogEditor.AskSaveFileAs());
             KeybindHandler.Register(new KeyCombo("Export Graph", Key.E, KeyModifiers.Control),
                 () => DialogEditor.AskExportFile());
+            KeybindHandler.Register(new KeyCombo("Export Graph as JSON", Key.E, KeyModifiers.Control | KeyModifiers.Shift),
+                () => DialogEditor.AskExportJsonFile());
         }
 
         private void Render(object sender, FrameEventArgs e)
         {
-            // Start profiling
-            _profiler.Start("render");
-
-            // March sparklines
-            if (_profile.ContainsKey("render"))
-                _renderTimeSparkline.Enqueue((float)_profile["render"].TotalMilliseconds);
-
-            _fpsSparkline.Enqueue((float)RenderFrequency);
-
             // Reset the view
             GL.Clear(ClearBufferMask.ColorBufferBit |
                      ClearBufferMask.DepthBufferBit |
@@ -608,10 +587,6 @@ namespace Sandbox
             NanoVG.nvgEndFrame(Nvg);
             // Swap the graphics buffer
             SwapBuffers();
-
-            // Stop profiling and get the results
-            _profiler.End();
-            _profile = _profiler.Reset();
         }
 
         public Vector2 ScreenToCanvasSpace(Vector2 input)
@@ -651,8 +626,7 @@ namespace Sandbox
 
         private void Update(object sender, FrameEventArgs e)
         {
-            if (_renderTimeSparkline.Count > 0)
-                Title = $"FPS: {Math.Round(RenderFrequency)} | RenderTime: {Math.Round(_profile["render"].TotalMilliseconds)}ms";
+            Title = $"FPS: {Math.Round(RenderFrequency)} | RenderTime: {Math.Round(RenderTime * 1000)}ms";
 
             // Grab the new keyboard state
             Keyboard = OpenTK.Input.Keyboard.GetState();
