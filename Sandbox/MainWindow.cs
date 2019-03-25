@@ -26,7 +26,6 @@ namespace Sandbox
         private ContextMenu _contextMenu;
         private bool _draggingBackground;
         private Func<Connection, bool> _draggingConnectionPredicate;
-        private GridRenderer _grid;
         private Vector2 _mouseCanvasSpace = Vector2.Zero;
         private NodeRenderer _nodeRenderer;
         private bool _shouldDie;
@@ -73,7 +72,7 @@ namespace Sandbox
 
         public Vector2 CanvasToScreenSpace(Vector2 input)
         {
-            return (input + _grid.Offset) * Zoom;
+            return (input + _nodeRenderer.gridOffset) * Zoom;
         }
 
         private void CreateContextMenu(Node context, float x, float y)
@@ -85,80 +84,53 @@ namespace Sandbox
             {
                 _contextMenu.Add(new ContextMenuItem(this, "NPC Dialogue", item =>
                 {
-                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    var n = new Node(NodeInfo.NpcDialogue, v.X, v.Y);
-                    Graph.Add(n);
-                    Selection.Select(n);
+                    CreateNodeAtContextMenu(NodeInfo.NpcDialogue);
                 }));
 
                 _contextMenu.Add(new ContextMenuItem(this, "Player Dialogue", item =>
                 {
-                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    var n = new Node(NodeInfo.PlayerDialogue, v.X, v.Y);
-                    Graph.Add(n);
-                    Selection.Select(n);
+                    CreateNodeAtContextMenu(NodeInfo.PlayerDialogue);
                 }));
 
                 _contextMenu.Add(new ContextMenuItem(this, "Has Flag", item =>
                 {
-                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    var n = new Node(NodeInfo.WaitForFlag, v.X, v.Y);
-                    Graph.Add(n);
-                    Selection.Select(n);
+                    CreateNodeAtContextMenu(NodeInfo.WaitForFlag);
                 }));
 
                 _contextMenu.Add(new ContextMenuItem(this, "Set Flag", item =>
                 {
-                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    var n = new Node(NodeInfo.SetFlag, v.X, v.Y);
-                    Graph.Add(n);
-                    Selection.Select(n);
+                    CreateNodeAtContextMenu(NodeInfo.SetFlag);
                 }));
 
                 _contextMenu.Add(new ContextMenuItem(this, "Clear Flag", item =>
                 {
-                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    var n = new Node(NodeInfo.ClearFlag, v.X, v.Y);
-                    Graph.Add(n);
-                    Selection.Select(n);
+                    CreateNodeAtContextMenu(NodeInfo.ClearFlag);
                 }));
 
                 _contextMenu.Add(new ContextMenuItem(this, "Is Quest Active", item =>
                 {
-                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    var n = new Node(NodeInfo.HasQuest, v.X, v.Y);
-                    Graph.Add(n);
-                    Selection.Select(n);
+                    CreateNodeAtContextMenu(NodeInfo.HasQuest);
                 }));
 
                 _contextMenu.Add(new ContextMenuItem(this, "Start Quest", item =>
                 {
-                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    var n = new Node(NodeInfo.StartQuest, v.X, v.Y);
-                    Graph.Add(n);
-                    Selection.Select(n);
+                    CreateNodeAtContextMenu(NodeInfo.StartQuest);
                 }));
 
                 _contextMenu.Add(new ContextMenuItem(this, "Complete Quest", item =>
                 {
-                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    var n = new Node(NodeInfo.CompleteQuest, v.X, v.Y);
-                    Graph.Add(n);
-                    Selection.Select(n);
+                    CreateNodeAtContextMenu(NodeInfo.CompleteQuest);
                 }));
 
                 _contextMenu.Add(new ContextMenuItem(this, "Trigger Event", item =>
                 {
-                    var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
-                    var n = new Node(NodeInfo.TriggerEvent, v.X, v.Y);
-                    Graph.Add(n);
-                    Selection.Select(n);
+                    CreateNodeAtContextMenu(NodeInfo.TriggerEvent);
                 }));
 
                 if (!Selection.IsClipboardEmpty)
                     _contextMenu.Add(new ContextMenuItem(this, "CTRL+V", "Paste",
                         item => Selection.Paste(_contextMenu.X, _contextMenu.Y, !Keyboard[Key.ShiftLeft],
-                            _grid.Pitch)));
+                            _nodeRenderer.gridPitch)));
             }
             else
             {
@@ -174,8 +146,8 @@ namespace Sandbox
                 if (context.NodeInfo.CanEditConnectors)
                 {
                     if (context.NodeInfo.Type == NodeInfo.PlayerDialogue.Type)
-                    _contextMenu.Add(new ContextMenuItem(this, "CTRL+Plus", "Add Connection",
-                        item => AddOutput(context)));
+                        _contextMenu.Add(new ContextMenuItem(this, "CTRL+Plus", "Add Connection",
+                            item => AddOutput(context)));
 
                     var subContext = PickConnectionWithText(x, y);
                     if (subContext != null)
@@ -185,6 +157,16 @@ namespace Sandbox
             }
 
             _contextMenu.RecalculateWidth();
+        }
+
+        private void CreateNodeAtContextMenu(NodeInfo type)
+        {
+            var v = ScreenToCanvasSpace(new Vector2(_contextMenu.X, _contextMenu.Y));
+            var n = new Node(type, v.X, v.Y);
+            if (Selection.CreatingConnectedNode)
+                Selection.DraggingConnection.ConnectTo(n.Input);
+            Graph.Add(n);
+            Selection.Select(n);
         }
 
         private void HandleClose(object sender, CancelEventArgs e)
@@ -211,8 +193,7 @@ namespace Sandbox
             // Init keyboard to ensure first frame won't NPE
             Keyboard = OpenTK.Input.Keyboard.GetState();
 
-            _grid = new GridRenderer(this);
-            _nodeRenderer = new NodeRenderer(this, _grid);
+            _nodeRenderer = new NodeRenderer(this);
 
             Node.WidthCalculator = _nodeRenderer.GetNodeWidth;
 
@@ -308,9 +289,16 @@ namespace Sandbox
 
                             menuItem.Action.Invoke(menuItem);
                             _contextMenu.Visible = false;
+                            if (Selection.CreatingConnectedNode)
+                            {
+                                Selection.CreatingConnectedNode = false;
+                                Selection.DraggingConnection = null;
+                            }
                             return;
                         }
 
+                        Selection.CreatingConnectedNode = false;
+                        Selection.DraggingConnection = null;
                         _contextMenu.Visible = false;
                     }
 
@@ -371,7 +359,7 @@ namespace Sandbox
 
             if (_draggingBackground)
             {
-                _grid.Offset += new Vector2(mouseMoveEventArgs.XDelta, mouseMoveEventArgs.YDelta) / Zoom;
+                _nodeRenderer.gridOffset += new Vector2(mouseMoveEventArgs.XDelta, mouseMoveEventArgs.YDelta) / Zoom;
                 return;
             }
 
@@ -391,8 +379,8 @@ namespace Sandbox
 
                     if (!Keyboard[Key.ShiftLeft])
                     {
-                        node.X = (int)(Math.Floor(node.X / _grid.Pitch) * _grid.Pitch);
-                        node.Y = (int)(Math.Floor(node.Y / _grid.Pitch) * _grid.Pitch);
+                        node.X = (int)(Math.Floor(node.X / _nodeRenderer.gridPitch) * _nodeRenderer.gridPitch);
+                        node.Y = (int)(Math.Floor(node.Y / _nodeRenderer.gridPitch) * _nodeRenderer.gridPitch);
                     }
                 }
         }
@@ -417,11 +405,18 @@ namespace Sandbox
                             _draggingConnectionPredicate);
                         if (picked != null)
                             Selection.DraggingConnection.ConnectTo(picked);
+                        else if (Selection.DraggingConnection.Side == NodeSide.Output)
+                        {
+                            Selection.CreatingConnectedNode = true;
+                            CreateContextMenu(null, _mouseCanvasSpace.X, _mouseCanvasSpace.Y);
+                            _contextMenu.Visible = true;
+                        }
                     }
 
                     Selection.SelectionRectangle = null;
                     Selection.IsDraggingNode = false;
-                    Selection.DraggingConnection = null;
+                    if (!Selection.CreatingConnectedNode)
+                        Selection.DraggingConnection = null;
                     break;
             }
         }
@@ -473,7 +468,7 @@ namespace Sandbox
                 new KeyCombo("Reset Zoom and Pan", Key.R, KeyModifiers.Control | KeyModifiers.Shift), () =>
                 {
                     SetZoom(5);
-                    _grid.Offset = Vector2.Zero;
+                    _nodeRenderer.gridOffset = Vector2.Zero;
                 });
             KeybindHandler.Register(new KeyCombo("Add Output", Key.Plus, KeyModifiers.Control), () =>
             {
@@ -486,7 +481,7 @@ namespace Sandbox
             KeybindHandler.Register(new KeyCombo("Cut", Key.X, KeyModifiers.Control), () => Selection.Cut());
             KeybindHandler.Register(new KeyCombo("Paste", Key.V, KeyModifiers.Control),
                 () => Selection.Paste(_mouseCanvasSpace.X, _mouseCanvasSpace.Y, !Keyboard[Key.ShiftLeft],
-                    _grid.Pitch));
+                    _nodeRenderer.gridPitch));
             KeybindHandler.Register(new KeyCombo("Open Project", Key.O, KeyModifiers.Control),
                 () => DialogEditor.AskOpenFile());
             KeybindHandler.Register(new KeyCombo("Save Project", Key.S, KeyModifiers.Control),
@@ -513,19 +508,19 @@ namespace Sandbox
 
             //_grid.Draw();
 
-            NanoVG.nvgTranslate(Nvg, _grid.Offset.X, _grid.Offset.Y);
+            NanoVG.nvgTranslate(Nvg, _nodeRenderer.gridOffset.X, _nodeRenderer.gridOffset.Y);
             NanoVG.nvgStrokeWidth(Nvg, 2);
 
             NanoVG.nvgStrokeColor(Nvg, NanoVG.nvgRGBA(0, 0, 0, 255));
 
             NanoVG.nvgBeginPath(Nvg);
-            NanoVG.nvgMoveTo(Nvg, -_grid.Pitch, 0);
-            NanoVG.nvgLineTo(Nvg, _grid.Pitch, 0);
+            NanoVG.nvgMoveTo(Nvg, -_nodeRenderer.gridPitch, 0);
+            NanoVG.nvgLineTo(Nvg, _nodeRenderer.gridPitch, 0);
             NanoVG.nvgStroke(Nvg);
 
             NanoVG.nvgBeginPath(Nvg);
-            NanoVG.nvgMoveTo(Nvg, 0, -_grid.Pitch);
-            NanoVG.nvgLineTo(Nvg, 0, _grid.Pitch);
+            NanoVG.nvgMoveTo(Nvg, 0, -_nodeRenderer.gridPitch);
+            NanoVG.nvgLineTo(Nvg, 0, _nodeRenderer.gridPitch);
             NanoVG.nvgStroke(Nvg);
 
             const int cxnLineWidth = 3;
@@ -533,6 +528,9 @@ namespace Sandbox
             if (Selection.DraggingConnection != null)
             {
                 var end = _mouseCanvasSpace;
+
+                if (Selection.CreatingConnectedNode)
+                    end = new Vector2(_contextMenu.X, _contextMenu.Y);
 
                 var picked = Selection.HoveringConnection;
                 if (picked != null && picked.Side != Selection.DraggingConnection.Side)
@@ -583,7 +581,7 @@ namespace Sandbox
                 //                _renderTimeSparkline.Render(Color.Blue, Color.LimeGreen);
                 NanoVG.nvgRestore(Nvg);
             }
-            
+
             NanoVG.nvgEndFrame(Nvg);
             // Swap the graphics buffer
             SwapBuffers();
@@ -591,7 +589,7 @@ namespace Sandbox
 
         public Vector2 ScreenToCanvasSpace(Vector2 input)
         {
-            return input / Zoom - _grid.Offset;
+            return input / Zoom - _nodeRenderer.gridOffset;
         }
 
         private static void SetupOpenGl()
@@ -620,8 +618,8 @@ namespace Sandbox
             _zoomIdx = zoomIdx;
 
             var size = new Vector2(Width, Height);
-            _grid.Offset -= (size / zoomBefore - size / Zoom) / 2;
-            _grid.Offset = new Vector2((int)_grid.Offset.X, (int)_grid.Offset.Y);
+            _nodeRenderer.gridOffset -= (size / zoomBefore - size / Zoom) / 2;
+            _nodeRenderer.gridOffset = new Vector2((int)_nodeRenderer.gridOffset.X, (int)_nodeRenderer.gridOffset.Y);
         }
 
         private void Update(object sender, FrameEventArgs e)
@@ -633,8 +631,6 @@ namespace Sandbox
 
             if (_shouldDie)
                 Exit();
-
-            MarchingAnts.March();
 
             Selection.HoveringConnection = Graph.PickConnection(_mouseCanvasSpace.X, _mouseCanvasSpace.Y);
 

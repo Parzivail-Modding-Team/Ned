@@ -79,14 +79,12 @@
     <Compile Include="FormDialogueEditor.Designer.cs">
       <DependentUpon>FormDialogueEditor.cs</DependentUpon>
     </Compile>
-    <Compile Include="GridRenderer.cs" />
     <Compile Include="Lumberjack.cs" />
     <Compile Include="NvgHelper.cs" />
     <Compile Include="TextBoxHandler.cs" />
     <Compile Include="KeybindHandler.cs" />
     <Compile Include="KeyCombo.cs" />
     <Compile Include="MainWindow.cs" />
-    <Compile Include="MarchingAnts.cs" />
     <Compile Include="NodeRenderer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

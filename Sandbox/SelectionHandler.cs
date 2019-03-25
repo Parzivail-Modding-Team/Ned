@@ -15,6 +15,7 @@ namespace Sandbox
         public readonly List<Node> SelectedNodes = new List<Node>();
         private Rectangle _selectionRectangle;
 
+        public bool CreatingConnectedNode;
         public Connection DraggingConnection;
         public Connection HoveringConnection;
         public bool IsDraggingNode;

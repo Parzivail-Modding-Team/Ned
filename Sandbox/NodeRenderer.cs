@@ -15,14 +15,13 @@ namespace Sandbox
     internal class NodeRenderer
     {
         private readonly Dictionary<NodeInfo, NVGcolor> _colorMap = new Dictionary<NodeInfo, NVGcolor>();
-        private readonly GridRenderer _grid;
-        private readonly Color4 _placeholderTextColor = new Color4(1, 1, 1, 0.5f);
         private readonly MainWindow _window;
+        public float gridPitch = 10;
+        public Vector2 gridOffset = Vector2.Zero;
 
-        public NodeRenderer(MainWindow window, GridRenderer grid)
+        public NodeRenderer(MainWindow window)
         {
             _window = window;
-            _grid = grid;
 
             _colorMap.Add(NodeInfo.None, Color.Black.ToNvgColor());
 
@@ -56,7 +55,7 @@ namespace Sandbox
             foreach (var connection in node.Outputs)
                 width = (int)Math.Max(NvgHelper.MeasureString(connection.Text).Width + textPadding, width);
 
-            width = (int)(Math.Ceiling(width / (float)_grid.Pitch) * _grid.Pitch);
+            width = (int)(Math.Ceiling(width / gridPitch) * gridPitch);
 
             return width;
         }
